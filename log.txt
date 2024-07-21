@@ -1,0 +1,10 @@
+### 2024-07-19
+- worked on design doc
+
+### 2024-07-20 3-6pm
+- tried to implement shadows in SDL
+- found out render to texture is not supported for emscripten target
+
+### 2024-07-20 10pm
+- decided I'll switch to plain JS and WebGL2
+- considering switching to 45 degree angle perspective just for fun
