@@ -8,3 +8,4 @@
 ### 2024-07-20 10pm
 - decided I'll switch to plain JS and WebGL2
 - considering switching to 45 degree angle perspective just for fun
+  - inspired by ldtk layer x offset

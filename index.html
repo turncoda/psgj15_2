@@ -3,7 +3,58 @@
   </head>
   <body style="margin:0">
     <canvas id="canvas" width="640px" height="360px"></canvas>
-    <script type="vertex" id="vs">
+    <script type="vertex" id="vs_shadow">
+      #version 300 es
+
+      uniform vec2 texSize;
+      uniform vec2 screenSize;
+      uniform vec4 srcRect;
+      uniform vec4 dstRect;
+      uniform vec2 origin;
+      
+      layout (location=0) in vec2 position;
+      layout (location=1) in vec2 uv;
+
+      out vec2 texCoord;
+      
+      void main() {
+        vec2 r_uv = uv;
+        r_uv = vec2(r_uv.y, r_uv.x);
+        float xCoord = (srcRect.x + r_uv.x * srcRect.z) / texSize.x;
+        float yCoord = (srcRect.y + r_uv.y * srcRect.w) / texSize.y;
+        texCoord = vec2(xCoord, yCoord);
+
+        float xPx = (dstRect.x + position.x * dstRect.z);
+        float yPx = (dstRect.y + position.y * dstRect.w);
+
+        // x mapped to [-1, 1]
+        float xScreen = xPx / screenSize.x * 2.0 - 1.0;
+        // y mapped to [1, -1]
+        float yScreen = -1.0 * (yPx / screenSize.y * 2.0 - 1.0);
+
+        gl_Position = vec4(xScreen, yScreen, 0.0, 1.0);
+      }
+    </script>
+    <script type="fragment" id="fs_shadow">
+      #version 300 es
+      precision highp float;
+
+      uniform sampler2D tex;
+      uniform vec2 texSize;
+      uniform vec2 screenSize;
+      uniform vec4 srcRect;
+      uniform vec4 dstRect;
+
+      in vec2 texCoord;
+
+      out vec4 fragColor;
+
+      void main() {
+        fragColor = texture(tex, texCoord);
+        fragColor.rgb = vec3(0.0, 0.0, 0.0);
+      }
+    </script>
+    <script type="vertex" id="vs_tiles">
       #version 300 es
 
       uniform vec2 texSize;
@@ -27,7 +78,7 @@
         gl_Position = vec4(xPos, yPos, 0.0, 1.0);
       }
     </script>
-    <script type="fragment" id="fs">
+    <script type="fragment" id="fs_tiles">
       #version 300 es
       precision highp float;
 

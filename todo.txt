@@ -1,6 +1,4 @@
-- render tiles to screen from spritesheet texture
-  - vertex shader needs camera translation and world translation uniforms
-  - by the end, should be able to do equivalent of SDL_RenderCopy
+- remove extraneous uv attribute
 - render shadows to texture
   - figure out how to render to texture <https://github.com/WebGLSamples/WebGL2Samples/blob/master/samples/fbo_rtt_texture_array.html>
 - split out render function and set up animation
