@@ -35,6 +35,7 @@ let is_pressed_up = false;
 let is_pressed_left = false;
 let is_pressed_down = false;
 let is_pressed_right = false;
+let is_debug_vis = false;
 
 let player_sprite_width;
 let player_sprite_height;
@@ -148,6 +149,9 @@ document.onkeydown = function (e) {
     break;
     case 68: // d
     is_pressed_right = true;
+    break;
+    case 80: // p
+    is_debug_vis = !is_debug_vis;
     break;
   }
 };
@@ -720,7 +724,7 @@ function render() {
 
 
     // --- render debug collision ---
-    {
+    if (is_debug_vis) {
       gl.useProgram(shader_programs.debug);
 
       let u_screenSize = gl.getUniformLocation(shader_programs.debug, "screenSize");
