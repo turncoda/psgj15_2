@@ -739,14 +739,12 @@ function render(timestamp) {
     gl.uniform2f(u_cameraPos, (cx), (cy));
 
     for (const entity of entity_instances) {
-      const data = entity_data[entity.identifier];
-      if (!data) continue;
-      const base = Object.assign({}, data.lsBox);
+      const base = Object.assign({}, entity.data.lsBox);
       base.x += entity.x;
       base.y += entity.y;
       const base_center_x = (2 * base.x + base.w) / 2.0;
       const base_center_y = (2 * base.y + base.h) / 2.0;
-      const rect = data.getStaticFrame().srcRect;
+      const rect = entity.getFrame(timestamp).srcRect;
       gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
       gl.uniform4f(u_dstRect, entity.x, entity.y, rect.w, rect.h);
       gl.uniform2f(u_origin, base_center_x, base_center_y);
