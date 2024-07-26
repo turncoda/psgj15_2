@@ -3,7 +3,10 @@
 const ONE_OVER_SQRT_OF_TWO = 1.0 / Math.sqrt(2.0);
 const TARGET_FRAME_RATE = 60.0; // frames per second
 const TARGET_FRAME_DURATION = 1000.0 / TARGET_FRAME_RATE; // milliseconds
+
 const TILE_SIZE = 16;
+const SCREEN_WIDTH = 320;
+const SCREEN_HEIGHT = 180;
 
 let gl;
 let buffer_unit_rect;
@@ -28,8 +31,6 @@ let is_pressed_left = false;
 let is_pressed_down = false;
 let is_pressed_right = false;
 
-let screen_size_x = 320;
-let screen_size_y = 180;
 let player_sprite_width;
 let player_sprite_height;
 
@@ -388,10 +389,9 @@ function render() {
 
     gl.uniform1i(u_tex, 0);
     gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
-    gl.uniform2f(u_screenSize, 320, 180);
-    gl.uniform2f(u_cameraPos,
-      player_x + 0.5 * player_sprite_width - 0.5 * screen_size_x,
-      player_y + 0.5 * player_sprite_height - 0.5 * screen_size_y);
+    gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
+    const [cx, cy] = getCameraPosition();
+    gl.uniform2f(u_cameraPos, cx, cy);
 
     for (const level of ldtk_map.levels) {
       for (const layer of level.layerInstances) {
@@ -436,10 +436,9 @@ function render() {
 
       gl.uniform1i(u_tex, 0);
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
-      gl.uniform2f(u_screenSize, 320, 180);
-      gl.uniform2f(u_cameraPos,
-        player_x + 0.5 * player_sprite_width - 0.5 * screen_size_x,
-        player_y + 0.5 * player_sprite_height - 0.5 * screen_size_y);
+      gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
+      const [cx, cy] = getCameraPosition();
+      gl.uniform2f(u_cameraPos, cx, cy);
 
       for (const level of ldtk_map.levels) {
         for (const layer of level.layerInstances) {
@@ -496,10 +495,9 @@ function render() {
 
       gl.uniform1i(u_tex, 0);
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
-      gl.uniform2f(u_screenSize, 320, 180);
-      gl.uniform2f(u_cameraPos,
-        player_x + 0.5 * player_sprite_width - 0.5 * screen_size_x,
-        player_y + 0.5 * player_sprite_height - 0.5 * screen_size_y);
+      gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
+      const [cx, cy] = getCameraPosition();
+      gl.uniform2f(u_cameraPos, cx, cy);
 
       for (const level of ldtk_map.levels) {
         for (const layer of level.layerInstances) {
@@ -526,14 +524,20 @@ function render() {
       let u_cameraPos = gl.getUniformLocation(shader_programs.debug, "cameraPos");
       let u_debugColor = gl.getUniformLocation(shader_programs.debug, "debugColor");
 
-      gl.uniform2f(u_screenSize, 320, 180);
-      gl.uniform2f(u_cameraPos,
-        player_x + 0.5 * player_sprite_width - 0.5 * screen_size_x,
-        player_y + 0.5 * player_sprite_height - 0.5 * screen_size_y);
+      gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
+      const [cx, cy] = getCameraPosition();
+      gl.uniform2f(u_cameraPos, cx, cy);
       gl.uniform3f(u_debugColor, 1, 0, 0);
       gl.drawArrays(gl.LINES, 0, 2);
     }
 
   }
+}
+
+function getCameraPosition() {
+  return [
+    player_x + 3 * TILE_SIZE - 0.5 * SCREEN_WIDTH,
+    player_y - 0.5 * SCREEN_HEIGHT,
+  ];
 }
 
