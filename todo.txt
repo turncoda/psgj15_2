@@ -1,6 +1,3 @@
-- add dash animation
-- enter dash mode on spacebar press, set counter, decrement counter every update, while counter is above zero, set state with priority
-- add dash ability
 - show text on interact
 - interactable entities
 - item/inventory system
