@@ -1,12 +1,15 @@
-- debug visualize player bounding polygon
+- add collision detection library
+- show text on interact
+- interactable entities
+- add self-shadowing data to shadow map
 
 - player animation while walking
 - explore quantizing position to animation framerate
 
 - add movement collision data from ldtk
-
+- item/inventory system
 - render order: render diagonals from bottom left to top right
-
+- add light sensor to ui
 
 - add fullscreen mode
 - controller support

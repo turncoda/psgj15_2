@@ -28,6 +28,8 @@ let player_x, player_y;
 let player_sprite_x, player_sprite_y;
 let player_speed_x = 1.0;
 let player_speed_y = 1.0;
+let player_light_sensors;
+let player_shadow_level;
 let is_pressed_up = false;
 let is_pressed_left = false;
 let is_pressed_down = false;
@@ -308,6 +310,13 @@ async function main() {
     1, 0,
   ];
 
+  player_light_sensors = [
+     8, 24,
+    16, 16,
+    24,  8, 
+  ];
+  player_shadow_level = 2;
+
   // --- CONSTRUCT GEOMETRY ---
 
   buffer_unit_rect = gl.createBuffer();
@@ -586,7 +595,6 @@ function render() {
           }
         }
       }
-
     }
 
     // --- render debug collision ---
@@ -647,6 +655,19 @@ function render() {
       }
     }
 
+    // update debug read-out
+    {
+      const shadow_level_span = document.getElementById("shadowLevel");
+      const total = player_light_sensors.length / 2.0;
+      const meter = ["|"];
+      for (let i = 0; i < total; i++) {
+        if (i < player_shadow_level) meter.push("#");
+        else meter.push("-");
+      }
+      meter.push("|");
+      shadow_level_span.innerHTML = meter.join("");
+    }
+
   }
 }
 
@@ -662,5 +683,13 @@ function scalePoint(x, y, origin_x, origin_y, scale) {
     (x - origin_x) * scale + origin_x,
     (y - origin_y) * scale + origin_y,
   ];
+}
+
+function forEachPair(arr, f) {
+  for (let i = 0; i < arr.length - 1; i += 2) {
+    const x = arr[i];
+    const y = arr[i+1];
+    f(x, y);
+  }
 }
 
