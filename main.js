@@ -25,7 +25,7 @@ const entity_instances = [];
 let prev_timestamp = 0;
 let time_since_last_draw = 0;
 
-let player_x, player_y;
+let player;
 let player_sprite_x, player_sprite_y;
 const PLAYER_LOW_SPEED = 0.5;
 const PLAYER_HIGH_SPEED = 1.5;
@@ -198,20 +198,6 @@ async function main() {
   let assets = await Promise.all(promises);
 
   ldtk_map = assets[1];
-  for (const level of ldtk_map.levels) {
-    for (const layer of level.layerInstances) {
-      for (const entity of layer.entityInstances) {
-        if (entity.__identifier === "Base") {
-          ldtk_map_bases[entity.iid] = { x: entity.px[0], y: entity.px[1], w: entity.width, h: entity.height };
-        }
-        if (entity.__identifier === "PlayerStart") {
-          player_x = entity.px[0];
-          player_y = entity.px[1];
-        }
-      }
-    }
-  }
-
   spritesheet_json = assets[2];
 
   // --- INIT WEBGL ---
@@ -360,6 +346,16 @@ async function main() {
     1, 0,
   ];
 
+  entity_data["Player"].base_rect = new Rect(0, 0, 1, 1);
+  entity_data["Player"].bounding_polygon = [
+    0, 0,
+    0, 1,
+    1, 2,
+    2, 2,
+    2, 1,
+    1, 0,
+  ];
+
   player_light_sensors = [
      8, 24,
     16, 16,
@@ -428,14 +424,29 @@ async function main() {
   for (const level of ldtk_map.levels) {
     for (const layer of level.layerInstances) {
       for (const entity of layer.entityInstances) {
-        entity_instances.push(
-          new EntityInstance(
-            entity.__identifier,
-            entity.__worldX,
-            entity.__worldY));
+        const inst = new EntityInstance(
+          entity.__identifier,
+          entity.__worldX,
+          entity.__worldY);
+        entity_instances.push(inst);
+        if (entity.__identifier === "Base") {
+          ldtk_map_bases[entity.iid] = { x: entity.px[0], y: entity.px[1], w: entity.width, h: entity.height };
+        }
+        if (entity.__identifier === "Player") {
+          player = inst;
+        }
       }
     }
   }
+  console.log(entity_instances);
+
+  for (const level of ldtk_map.levels) {
+    for (const layer of level.layerInstances) {
+      for (const entity of layer.entityInstances) {
+      }
+    }
+  }
+
 
   // --- SET UP VERTEX ARRAYS ---
 
@@ -518,14 +529,14 @@ function update() {
     dy += player_velocity;
   }
 
-  player_x += dx;
-  player_y += dy;
+  player.x += dx;
+  player.y += dy;
 
   // --- calculate shadow level ---
   {
     let shadow_level = 0;
     forEachPair(player_light_sensors, (x, y) => {
-      const point = new SAT.Vector(player_x + x, player_y + y);
+      const point = new SAT.Vector(player.x + x, player.y + y);
       for (const entity of entity_instances) {
         const polygon = entity.shadowPolygon;
         if (!polygon) continue;
@@ -600,6 +611,7 @@ function render() {
 
       // subtract entities
       for (const entity of entity_instances) {
+        if (entity.identifier === "Player") continue;
         const data = entity_data[entity.identifier];
         if (!data) continue;
         gl.uniform4f(u_srcRect,
@@ -697,11 +709,6 @@ function render() {
           data.tex_rect.w, data.tex_rect.h);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
-
-      // --- render player ---
-      gl.uniform4f(u_srcRect, player_sprite_x, player_sprite_y, 32, 32);
-      gl.uniform4f(u_dstRect, Math.round(player_x), Math.round(player_y), 32, 32);
-      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
 
     // --- render shadow map texture to screen ---
@@ -803,8 +810,8 @@ function render() {
 
 function getCameraPosition() {
   return [
-    player_x + 3 * TILE_SIZE - 0.5 * SCREEN_WIDTH,
-    player_y - 0.5 * SCREEN_HEIGHT,
+    player.x + 3 * TILE_SIZE - 0.5 * SCREEN_WIDTH,
+    player.y - 0.5 * SCREEN_HEIGHT,
   ];
 }
 

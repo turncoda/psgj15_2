@@ -138,6 +138,7 @@
    { "name": "House", "from": 1, "to": 1, "direction": "forward", "color": "#000000ff" },
    { "name": "Well", "from": 2, "to": 2, "direction": "forward", "color": "#000000ff" },
    { "name": "player_walk", "from": 3, "to": 4, "direction": "forward", "color": "#000000ff" },
+   { "name": "Player", "from": 3, "to": 3, "direction": "forward", "color": "#000000ff" },
    { "name": "ground", "from": 5, "to": 5, "direction": "forward", "color": "#000000ff" },
    { "name": "DebugBlock", "from": 6, "to": 6, "direction": "forward", "color": "#000000ff" }
   ],
