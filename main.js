@@ -1,15 +1,68 @@
 "use strict";
 
+const ONE_OVER_SQRT_OF_TWO = 1.0 / Math.sqrt(2.0);
+
 let gl;
 let ldtk_map;
 let ldtk_map_bases = {};
-let player_x, player_y;
-let player_sprite_x, player_sprite_y;
 let img_spritesheet;
 let fb;
 let shader_programs = {};
 let spritesheet_json;
 
+let player_x, player_y;
+let player_sprite_x, player_sprite_y;
+let player_speed_x = 1.0;
+let player_speed_y = 1.0;
+let is_pressed_up = false;
+let is_pressed_left = false;
+let is_pressed_down = false;
+let is_pressed_right = false;
+
+window.addEventListener("load", main);
+
+// keycodes:
+// w 87
+// a 65
+// s 83
+// d 68
+// space 32
+// e 69
+// q 81
+
+document.onkeydown = function (e) {
+  switch (e.keyCode) {
+    case 87: // w
+    is_pressed_up = true;
+    break;
+    case 65: // a
+    is_pressed_left = true;
+    break;
+    case 83: // s
+    is_pressed_down = true;
+    break;
+    case 68: // d
+    is_pressed_right = true;
+    break;
+  }
+};
+
+document.onkeyup = function (e) {
+  switch (e.keyCode) {
+    case 87: // w
+    is_pressed_up = false;
+    break;
+    case 65: // a
+    is_pressed_left = false;
+    break;
+    case 83: // s
+    is_pressed_down = false;
+    break;
+    case 68: // d
+    is_pressed_right = false;
+    break;
+  }
+};
 
 async function main() {
   let promises = [];
@@ -153,8 +206,6 @@ async function main() {
   window.requestAnimationFrame(step);
 }
 
-window.addEventListener("load", main);
-
 // --- HELPERS ---
 
 function createProgram(gl, vs_source, fs_source) {
@@ -190,14 +241,35 @@ function createProgram(gl, vs_source, fs_source) {
   return program;
 }
 
-let startTime;
-let prevTimestamp;
-let framesRendered = 0;
-
 function step(timestamp) {
   // TODO cap framerate
+  update();
   render();
   window.requestAnimationFrame(step);
+}
+
+function update() {
+  let dx = 0;
+  let dy = 0;
+  if (is_pressed_right) {
+    dx += player_speed_x;
+  }
+  if (is_pressed_left) {
+    dx -= player_speed_x;
+  }
+  if (is_pressed_up) {
+    dy -= player_speed_y;
+  }
+  if (is_pressed_down) {
+    dy += player_speed_y;
+  }
+  if (dx != 0 && dy != 0) {
+    dx *= ONE_OVER_SQRT_OF_TWO;
+    dy *= ONE_OVER_SQRT_OF_TWO;
+  }
+
+  player_x += dx;
+  player_y += dy;
 }
 
 function render() {
@@ -276,6 +348,11 @@ function render() {
           }
         }
       }
+
+      // --- render player ---
+      gl.uniform4f(u_srcRect, player_sprite_x, player_sprite_y, 32, 32);
+      gl.uniform4f(u_dstRect, Math.trunc(player_x), Math.trunc(player_y), 32, 32);
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
 
     // --- render shadow map texture to screen ---
@@ -331,11 +408,6 @@ function render() {
           }
         }
       }
-
-      // --- render player ---
-      gl.uniform4f(u_srcRect, player_sprite_x, player_sprite_y, 32, 32);
-      gl.uniform4f(u_dstRect, player_x, player_y, 32, 32);
-      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
 
   }
