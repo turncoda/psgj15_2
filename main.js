@@ -109,37 +109,77 @@ class Entity {
 //   idle: { ...
 // }
 // const frame = {
+//   duration: number
 //   srcRect: Rect
 //   ssSrcRect: Rect
 //   ssOffsetX: number
 //   ssOffsetY: number
 // }
 
+class Frame {
+  constructor(x, y, w, h, duration) {
+    this.srcRect = new Rect(x, y, w, h);
+    this.duration = duration;
+
+    // optional
+    this.ssSrcRect = new Rect(0, 0, 0, 0);
+    this.ssOffsetX = 0;
+    this.ssOffsetY = 0;
+  }
+}
+
+// invariant: always has at least one frame
+class Animation {
+  constructor(frames) {
+    this.loop = true;
+    // TODO undefined frame should be visible and obviously wrong
+    this.frames = frames ?? [new Frame(0, 0, 0, 0, 0)];
+  }
+  get height() {
+    console.assert(this.frames.length > 0);
+    return this.frames[0].srcRect.h;
+  }
+}
 
 class EntityData {
-  constructor(tex_rect, ss_tex_rect, ss_offset_x, ss_offset_y, base_rect, bounding_polygon) {
+  constructor(frame) {
+    const default_frame = frame ?? new Frame(0, 0, 0, 0, 0);
+    // animations
+    // - object. primary key: animation name, secondary key: facing
+    // - should always have "Static" animation with "Down" facing
+    this.animations = { "Static": { "Down": new Animation([default_frame]) }};
+    // TODO remove this
     // tex_rect
     // - region of texture
     // - (x, y) of rect is TOP LEFT corner of sprite's bounding box
-    this.tex_rect = tex_rect;
+    this.tex_rect = new Rect(0, 0, 0, 0);
+    // TODO remove this
     // ss_tex_rect
     // - region of self-shadow mask in spritesheet
     // - offset is relative to TOP LEFT corner of sprite's bounding box
-    this.ss_tex_rect = ss_tex_rect;
-    this.ss_offset_x = ss_offset_x || 0;
-    this.ss_offset_y = ss_offset_y || 0;
+    this.ss_tex_rect = new Rect(0, 0, 0, 0);
+    this.ss_offset_x = 0;
+    this.ss_offset_y = 0;
     // base_rect
     // - relative to BOTTOM LEFT corner of tex_rect AND base_rect
     // - coordinates are tiles, not pixels
     // - will flip Y when transforming to world position
-    this.base_rect = base_rect || new Rect(0, 0, 0, 0);
+    this.base_rect = new Rect(0, 0, 0, 0);
     // bounding_polygon
     // - format: [x_0, y_0, x_1, y_1, ... x_n, y_n]
     // - coordinates are tiles, not pixels
     // - vertices clockwise around the perimeter of the sprite
     // - (0, 0) is BOTTOM LEFT corner of tex_rect
     // - will flip Y when transforming to world position
-    this.bounding_polygon = bounding_polygon || [];
+    this.bounding_polygon = [];
+  }
+
+  getStaticFrame() {
+    return this.animations["Static"]["Down"].frames[0];
+  }
+
+  getSpriteHeight() {
+    return this.animations["Static"]["Down"].height;
   }
 
   getBoundingPolygon() {
@@ -148,7 +188,7 @@ class EntityData {
       const x = this.bounding_polygon[i];
       const y = this.bounding_polygon[i+1];
       result.push(TILE_SIZE * x);
-      result.push(this.tex_rect.h - TILE_SIZE * y);
+      result.push(this.getSpriteHeight() - TILE_SIZE * y);
     }
     return result;
   }
@@ -156,7 +196,7 @@ class EntityData {
   get lsBox() {
     if (this._lsBox) return this._lsBox;
     const x = TILE_SIZE * this.base_rect.x;
-    const y = this.tex_rect.h - TILE_SIZE * (this.base_rect.y + this.base_rect.h);
+    const y = this.getSpriteHeight() - TILE_SIZE * (this.base_rect.y + this.base_rect.h);
     const w = TILE_SIZE * this.base_rect.w;
     const h = TILE_SIZE * this.base_rect.h;
     this._lsBox = new Rect(x, y, w, h);
@@ -342,20 +382,25 @@ async function main() {
 
   for (const tag of spritesheet_json.meta.frameTags) {
     if (tag.name.startsWith("a_")) {
-      const id = tag.name.split("_")[1];
-      console.log(id);
+      const [_, id, animName] = tag.name.split("_");
+      if (!(id in entity_data)) {
+        const data = new EntityData();
+        entity_data[id] = data;
+      }
       // TODO
     } else if (tag.name.startsWith("t_")) {
+      // TODO
     } else {
       const key = `${tag.from}_Down`;
       const ss_key = `${tag.from}_Down_ss`;
       const f = spritesheet_json.frames[key];
       const ss = spritesheet_json.frames[ss_key];
-      entity_data[tag.name] = new EntityData(
-        new Rect(f.frame.x, f.frame.y, f.frame.w, f.frame.h),
-        new Rect(ss.frame.x, ss.frame.y, ss.frame.w, ss.frame.h),
-        ss.spriteSourceSize.x - f.spriteSourceSize.x, ss.spriteSourceSize.y - f.spriteSourceSize.y,
-      );
+      const frame = new Frame(f.frame.x, f.frame.y, f.frame.w, f.frame.h, 0);
+      frame.ssSrcRect = new Rect(ss.frame.x, ss.frame.y, ss.frame.w, ss.frame.h);
+      frame.ssOffsetX = ss.spriteSourceSize.x - f.spriteSourceSize.x;
+      frame.ssOffsetY = ss.spriteSourceSize.y - f.spriteSourceSize.y;
+      const data = new EntityData(frame);
+      entity_data[tag.name] = data;
     }
   }
 
@@ -649,7 +694,7 @@ function render() {
       base.y += entity.y;
       const base_center_x = (2 * base.x + base.w) / 2.0;
       const base_center_y = (2 * base.y + base.h) / 2.0;
-      const rect = data.tex_rect;
+      const rect = data.getStaticFrame().srcRect;
       gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
       gl.uniform4f(u_dstRect, entity.x, entity.y, rect.w, rect.h);
       gl.uniform2f(u_origin, base_center_x, base_center_y);
@@ -679,14 +724,9 @@ function render() {
       // subtract entities
       for (const entity of entity_instances) {
         if (entity.identifier === "Player") continue;
-        const data = entity_data[entity.identifier];
-        if (!data) continue;
-        gl.uniform4f(u_srcRect,
-          data.tex_rect.x, data.tex_rect.y,
-          data.tex_rect.w, data.tex_rect.h);
-        gl.uniform4f(u_dstRect,
-          entity.x, entity.y,
-          data.tex_rect.w, data.tex_rect.h);
+        const rect = entity.data.getStaticFrame().srcRect;
+        gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
+        gl.uniform4f(u_dstRect, entity.x, entity.y, rect.w, rect.h);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
 
@@ -696,14 +736,10 @@ function render() {
 
       // add entity self-shadow
       for (const entity of entity_instances) {
-        const data = entity_data[entity.identifier];
-        if (!data) continue;
-        gl.uniform4f(u_srcRect,
-          data.ss_tex_rect.x, data.ss_tex_rect.y,
-          data.ss_tex_rect.w, data.ss_tex_rect.h);
-        gl.uniform4f(u_dstRect,
-          entity.x + data.ss_offset_x, entity.y + data.ss_offset_y,
-          data.ss_tex_rect.w, data.ss_tex_rect.h);
+        const frame = entity.data.getStaticFrame();
+        const rect = frame.ssSrcRect;
+        gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
+        gl.uniform4f(u_dstRect, entity.x + frame.ssOffsetX, entity.y + frame.ssOffsetY, rect.w, rect.h);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
 
@@ -765,15 +801,9 @@ function render() {
       gl.uniform2f(u_cameraPos, (cx), (cy));
 
       for (const entity of entity_instances) {
-        const data = entity_data[entity.identifier];
-        if (!data) continue;
-        const tex_rect = data.tex_rect;
-        gl.uniform4f(u_srcRect,
-          data.tex_rect.x, data.tex_rect.y,
-          data.tex_rect.w, data.tex_rect.h);
-        gl.uniform4f(u_dstRect,
-          entity.x, entity.y,
-          data.tex_rect.w, data.tex_rect.h);
+        const rect = entity.data.getStaticFrame().srcRect;
+        gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
+        gl.uniform4f(u_dstRect, entity.x, entity.y, rect.w, rect.h);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
     }
@@ -819,24 +849,21 @@ function render() {
       gl.uniform2f(u_scale, 1, 1);
 
       for (const entity of entity_instances) {
-        const data = entity_data[entity.identifier];
-        if (!data) continue;
-
         // --- draw bounding polygon ---
         gl.uniform3f(u_debugColor, 1, 0, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, data.bounding_polygon_buffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, entity.data.bounding_polygon_buffer);
         gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
         gl.uniform2f(u_worldPos, entity.x, entity.y);
-        gl.drawArrays(gl.LINE_LOOP, 0, data.num_verts);
+        gl.drawArrays(gl.LINE_LOOP, 0, entity.data.num_verts);
 
         // --- draw shadow bounding polygon ---
         gl.uniform3f(u_debugColor, 0, 1, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, data.shadow_bounding_polygon_buffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, entity.data.shadow_bounding_polygon_buffer);
         gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
         gl.uniform2f(u_worldPos,
           entity.shadowPolygon.pos.x,
           entity.shadowPolygon.pos.y);
-        gl.drawArrays(gl.LINE_LOOP, 0, data.num_verts);
+        gl.drawArrays(gl.LINE_LOOP, 0, entity.data.num_verts);
       }
 
       // --- draw entity bases ---
