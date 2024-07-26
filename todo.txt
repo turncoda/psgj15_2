@@ -1,3 +1,4 @@
+- player walk animation
 - player facing
 - render order: render diagonals from bottom left to top right
 - add dash ability
@@ -5,13 +6,13 @@
 - interactable entities
 
 - item/inventory system
-- add light sensor to ui
 
 - do level design
 - add variety of floor tiles
 
-- player animation while walking
+- render intersection of player silhouette and self-shadow to shadow map first
 - explore quantizing position to animation framerate
+- add light sensor to ui
 
 - add fullscreen mode
 - controller support

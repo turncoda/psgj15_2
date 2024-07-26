@@ -131,12 +131,11 @@ class Frame {
 // invariant: always has at least one frame
 class Animation {
   constructor(frames) {
+    console.assert(frames && frames.length > 0);
     this.loop = true;
-    // TODO undefined frame should be visible and obviously wrong
-    this.frames = frames ?? [new Frame(0, 0, 0, 0, 0)];
+    this.frames = frames;
   }
   get height() {
-    console.assert(this.frames.length > 0);
     return this.frames[0].srcRect.h;
   }
 }
@@ -148,20 +147,8 @@ class EntityData {
     // - object. primary key: animation name, secondary key: facing
     // - should always have "Static" animation with "Down" facing
     this.animations = { "Static": { "Down": new Animation([default_frame]) }};
-    // TODO remove this
-    // tex_rect
-    // - region of texture
-    // - (x, y) of rect is TOP LEFT corner of sprite's bounding box
-    this.tex_rect = new Rect(0, 0, 0, 0);
-    // TODO remove this
-    // ss_tex_rect
-    // - region of self-shadow mask in spritesheet
-    // - offset is relative to TOP LEFT corner of sprite's bounding box
-    this.ss_tex_rect = new Rect(0, 0, 0, 0);
-    this.ss_offset_x = 0;
-    this.ss_offset_y = 0;
     // base_rect
-    // - relative to BOTTOM LEFT corner of tex_rect AND base_rect
+    // - relative to BOTTOM LEFT corner of the sprite AND base_rect
     // - coordinates are tiles, not pixels
     // - will flip Y when transforming to world position
     this.base_rect = new Rect(0, 0, 0, 0);
@@ -169,7 +156,7 @@ class EntityData {
     // - format: [x_0, y_0, x_1, y_1, ... x_n, y_n]
     // - coordinates are tiles, not pixels
     // - vertices clockwise around the perimeter of the sprite
-    // - (0, 0) is BOTTOM LEFT corner of tex_rect
+    // - (0, 0) is BOTTOM LEFT corner of the sprite
     // - will flip Y when transforming to world position
     this.bounding_polygon = [];
   }
