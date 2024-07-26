@@ -370,14 +370,12 @@ async function main() {
     4, 0,
   ];
 
-  entity_data["Well"].base_rect = new Rect(0, 0, 2, 2);
+  entity_data["Well"].base_rect = new Rect(0.5, 0.5, 1, 1);
   entity_data["Well"].bounding_polygon = [
-    0, 0,
-    0, 2,
+    1, 1,
     1, 3,
     3, 4,
-    3, 1,
-    2, 0,
+    3, 2,
   ];
 
   entity_data["DebugBlock"].base_rect = new Rect(0, 0, 1, 1);
@@ -390,7 +388,7 @@ async function main() {
     1, 0,
   ];
 
-  entity_data["Player"].base_rect = new Rect(0, 0, 1, 1);
+  entity_data["Player"].base_rect = new Rect(0.25, 0.25, 0.5, 0.5);
   entity_data["Player"].bounding_polygon = [
     0, 0,
     0, 1,
@@ -405,7 +403,7 @@ async function main() {
     16, 16,
     24,  8, 
   ];
-  player_shadow_level = 2;
+  player_shadow_level = 0;
 
   // --- CONSTRUCT GEOMETRY ---
 
@@ -588,6 +586,7 @@ function update() {
     forEachPair(player_light_sensors, (x, y) => {
       const point = new SAT.Vector(player.x + x, player.y + y);
       for (const entity of entity_instances) {
+        if (entity.identifier === "Player") continue;
         const polygon = entity.shadowPolygon;
         if (!polygon) continue;
         if (SAT.pointInPolygon(point, polygon)) {
