@@ -656,10 +656,23 @@ function update(timestamp) {
   if (is_pressed_down) {
     dy += player_velocity;
   }
+
   if (dx !== 0 || dy !== 0) {
     player.setState("Walk", timestamp);
   } else {
     player.setState("Idle", timestamp);
+  }
+
+  if (dx > 0) {
+    player.facing = "Right";
+  } else if (dx < 0) {
+    player.facing = "Left";
+  }
+
+  if (dy > 0) {
+    player.facing = "Down";
+  } else if (dy < 0) {
+    player.facing = "Up";
   }
 
   const rectCopy = player.rect.copy();

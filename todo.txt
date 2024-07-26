@@ -1,4 +1,3 @@
-- player facing
 - render order: render diagonals from bottom left to top right
 - add dash ability
 - show text on interact
