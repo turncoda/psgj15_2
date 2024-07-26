@@ -27,8 +27,9 @@ let time_since_last_draw = 0;
 
 let player_x, player_y;
 let player_sprite_x, player_sprite_y;
-let player_speed_x = 1.0;
-let player_speed_y = 1.0;
+const PLAYER_LOW_SPEED = 0.5;
+const PLAYER_HIGH_SPEED = 1.5;
+let player_velocity;
 let player_light_sensors;
 let player_shadow_level;
 let is_pressed_up = false;
@@ -497,19 +498,24 @@ function step(timestamp) {
 }
 
 function update() {
+  player_velocity = lerp(
+    PLAYER_LOW_SPEED,
+    PLAYER_HIGH_SPEED,
+    2 * player_shadow_level / player_light_sensors.length);
+
   let dx = 0;
   let dy = 0;
   if (is_pressed_right) {
-    dx += player_speed_x;
+    dx += player_velocity;
   }
   if (is_pressed_left) {
-    dx -= player_speed_x;
+    dx -= player_velocity;
   }
   if (is_pressed_up) {
-    dy -= player_speed_y;
+    dy -= player_velocity;
   }
   if (is_pressed_down) {
-    dy += player_speed_y;
+    dy += player_velocity;
   }
 
   player_x += dx;
@@ -555,7 +561,7 @@ function render() {
     gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
     gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
     const [cx, cy] = getCameraPosition();
-    gl.uniform2f(u_cameraPos, cx, cy);
+    gl.uniform2f(u_cameraPos, Math.round(cx), Math.round(cy));
 
     for (const entity of entity_instances) {
       const data = entity_data[entity.identifier];
@@ -590,7 +596,7 @@ function render() {
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       const [cx, cy] = getCameraPosition();
-      gl.uniform2f(u_cameraPos, cx, cy);
+      gl.uniform2f(u_cameraPos, Math.round(cx), Math.round(cy));
 
       // subtract entities
       for (const entity of entity_instances) {
@@ -647,7 +653,7 @@ function render() {
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       const [cx, cy] = getCameraPosition();
-      gl.uniform2f(u_cameraPos, cx, cy);
+      gl.uniform2f(u_cameraPos, Math.round(cx), Math.round(cy));
 
       for (const level of ldtk_map.levels) {
         for (const layer of level.layerInstances) {
@@ -677,7 +683,7 @@ function render() {
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       const [cx, cy] = getCameraPosition();
-      gl.uniform2f(u_cameraPos, cx, cy);
+      gl.uniform2f(u_cameraPos, Math.round(cx), Math.round(cy));
 
       for (const entity of entity_instances) {
         const data = entity_data[entity.identifier];
@@ -694,7 +700,7 @@ function render() {
 
       // --- render player ---
       gl.uniform4f(u_srcRect, player_sprite_x, player_sprite_y, 32, 32);
-      gl.uniform4f(u_dstRect, Math.trunc(player_x), Math.trunc(player_y), 32, 32);
+      gl.uniform4f(u_dstRect, Math.round(player_x), Math.round(player_y), 32, 32);
       gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
 
@@ -735,7 +741,7 @@ function render() {
 
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       const [cx, cy] = getCameraPosition();
-      gl.uniform2f(u_cameraPos, cx, cy);
+      gl.uniform2f(u_cameraPos, Math.round(cx), Math.round(cy));
       gl.uniform2f(u_scale, 1, 1);
 
       for (const entity of entity_instances) {
@@ -788,6 +794,10 @@ function render() {
         shadow_level_span.innerHTML = result;
       }
     }
+    {
+      const span = document.getElementById("playerSpeed");
+      span.innerHTML = player_velocity.toPrecision(2);
+    }
   }
 }
 
@@ -819,5 +829,9 @@ function polygonFromArray(x, y, arr) {
     points.push(new SAT.Vector(x, y));
   });
   return new SAT.Polygon(new SAT.Vector(x, y), points);
+}
+
+function lerp(a, b, pct) {
+  return a * (1 - pct) + b * pct;
 }
 

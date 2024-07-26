@@ -1,10 +1,10 @@
+- base rect collision
 - show text on interact
 - interactable entities
 
 - player animation while walking
 - explore quantizing position to animation framerate
 
-- add movement collision data from ldtk
 - item/inventory system
 - render order: render diagonals from bottom left to top right
 - add light sensor to ui
