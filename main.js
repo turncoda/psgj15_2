@@ -18,7 +18,7 @@ let img_spritesheet;
 let fb;
 let shader_programs = {};
 let spritesheet_json;
-let entity_colliders = {};
+const entity_data = {};
 
 let prev_timestamp = 0;
 let time_since_last_draw = 0;
@@ -54,14 +54,14 @@ class EntityData {
     // - relative to BOTTOM LEFT corner of tex_rect AND base_rect
     // - coordinates are tiles, not pixels
     // - will flip Y when transforming to world position
-    this.base_rect = base_rect;
+    this.base_rect = base_rect || new Rect(0, 0, 0, 0);
     // bounding_polygon
     // - format: [x_0, y_0, x_1, y_1, ... x_n, y_n]
     // - coordinates are tiles, not pixels
     // - vertices clockwise around the perimeter of the sprite
     // - (0, 0) is BOTTOM LEFT corner of tex_rect
     // - will flip Y when transforming to world position
-    this.bounding_polygon = bounding_polygon;
+    this.bounding_polygon = bounding_polygon || [];
   }
 
   getBoundingPolygon() {
@@ -83,21 +83,6 @@ class EntityData {
     return new Rect(x, y, w, h);
   }
 }
-
-const ENTITY_DATA = {
-  Clocktower: new EntityData(
-    new Rect(16, 16, 4 * 16, 5 * 16),
-    new Rect(0, 0, 2, 2),
-    [
-      0, 0,
-      0, 2,
-      2, 4,
-      4, 5,
-      4, 2,
-      2, 0,
-    ],
-  )
-};
 
 window.addEventListener("load", main);
 
@@ -271,7 +256,57 @@ async function main() {
   let vs_debug = document.querySelector("#vs_debug").innerHTML.trim();
   let fs_debug = document.querySelector("#fs_debug").innerHTML.trim();
   shader_programs.debug = createProgram(gl, vs_debug, fs_debug);
-  
+
+  // --- LOAD SPRITE DATA ---
+
+  for (const tag of spritesheet_json.meta.frameTags) {
+    if (!tag.name[0].match(/[A-Z]/g)) continue;
+    const frame = spritesheet_json.frames[tag.from].frame;
+    entity_data[tag.name] = new EntityData(
+      new Rect(frame.x, frame.y, frame.w, frame.h));
+  }
+
+  entity_data["Clocktower"].base_rect = new Rect(0, 0, 2, 2);
+  entity_data["Clocktower"].bounding_polygon = [
+    0, 0,
+    0, 2,
+    2, 4,
+    4, 5,
+    4, 2,
+    2, 0,
+  ];
+
+  entity_data["House"].base_rect = new Rect(0, 0, 4, 3);
+  entity_data["House"].bounding_polygon = [
+    0, 0,
+    0, 3,
+    2, 5,
+    5, 6,
+    6, 5,
+    6, 2,
+    4, 0,
+  ];
+
+  entity_data["Well"].base_rect = new Rect(0, 0, 2, 2);
+  entity_data["Well"].bounding_polygon = [
+    0, 0,
+    0, 2,
+    1, 3,
+    3, 4,
+    3, 1,
+    2, 0,
+  ];
+
+  entity_data["DebugBlock"].base_rect = new Rect(0, 0, 1, 1);
+  entity_data["DebugBlock"].bounding_polygon = [
+    0, 0,
+    0, 1,
+    1, 2,
+    2, 2,
+    2, 1,
+    1, 0,
+  ];
+
   // --- CONSTRUCT GEOMETRY ---
 
   buffer_unit_rect = gl.createBuffer();
@@ -290,13 +325,13 @@ async function main() {
     100, 100,
   ]), gl.STATIC_DRAW);
 
-  for (const entity_name of Object.keys(ENTITY_DATA)) {
-    const vertices = ENTITY_DATA[entity_name].getBoundingPolygon();
-    console.log(vertices);
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  for (const entity_name of Object.keys(entity_data)) {
+    const data = entity_data[entity_name]
+    const vertices = data.getBoundingPolygon();
+    data.num_verts = vertices.length / 2;
+    data.buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, data.buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    entity_colliders[entity_name] = {buffer: buffer, num_verts: vertices.length / 2};
   }
 
   // --- SET UP VERTEX ARRAYS ---
@@ -307,8 +342,6 @@ async function main() {
 
   gl.enableVertexAttribArray(1);
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer_debug);
-  gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
-  gl.bindBuffer(gl.ARRAY_BUFFER, entity_colliders["Clocktower"].buffer);
   gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
 
   window.requestAnimationFrame(step);
@@ -526,6 +559,7 @@ function render() {
           }
         }
       }
+
     }
 
     // --- render debug collision ---
@@ -546,11 +580,12 @@ function render() {
       for (const level of ldtk_map.levels) {
         for (const layer of level.layerInstances) {
           for (const entity of layer.entityInstances) {
-            const collider = entity_colliders[entity.__identifier];
-            if (!collider) continue;
-            gl.bindBuffer(gl.ARRAY_BUFFER, collider.buffer);
+            const data = entity_data[entity.__identifier];
+            if (!data) continue;
+            gl.bindBuffer(gl.ARRAY_BUFFER, data.buffer);
+            gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
             gl.uniform2f(u_worldPos, entity.__worldX, entity.__worldY);
-            gl.drawArrays(gl.LINE_LOOP, 0, collider.num_verts);
+            gl.drawArrays(gl.LINE_LOOP, 0, data.num_verts);
           }
         }
       }
