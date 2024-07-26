@@ -40,9 +40,6 @@ let is_pressed_down = false;
 let is_pressed_right = false;
 let is_debug_vis = false;
 
-let player_sprite_width;
-let player_sprite_height;
-
 class Rect {
   constructor(x, y, w, h) {
     this.x = x;
@@ -328,16 +325,6 @@ async function main() {
   shader_programs.debug = createProgram(gl, vs_debug, fs_debug);
 
   // --- LOAD SPRITE DATA ---
-
-  for (const tag of spritesheet_json.meta.frameTags) {
-    if (tag.name === "player_walk") {
-      const frame = spritesheet_json.frames[tag.from].frame;
-      player_sprite_x = frame.x;
-      player_sprite_y = frame.y;
-      player_sprite_width = frame.w;
-      player_sprite_height = frame.h;
-    }
-  }
 
   const frames_length = spritesheet_json.frames.length;
   for (const tag of spritesheet_json.meta.frameTags) {
