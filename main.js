@@ -773,7 +773,7 @@ function render() {
       // --- draw entity bases ---
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer_debug);
       gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
-      gl.uniform3f(u_debugColor, 0, 0, 1);
+      gl.uniform3f(u_debugColor, 0, 1, 1);
 
       for (const entity of entity_instances) {
         const data = entity_data[entity.identifier];

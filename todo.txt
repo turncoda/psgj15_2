@@ -1,5 +1,5 @@
 - base rect collision
-- add dash
+- add dash ability
 - show text on interact
 - interactable entities
 
