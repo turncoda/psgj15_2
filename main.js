@@ -36,11 +36,13 @@ const PLAYER_VELOCITY_MAX_DECREMENT = .05;
 let player_light_sensors;
 let player_shadow_level;
 let player_dash_counter = 0;
+let player_can_dash = false;
 const PLAYER_DASH_MAX_DURATION = 500;
 let is_pressed_up = false;
 let is_pressed_left = false;
 let is_pressed_down = false;
 let is_pressed_right = false;
+let is_pressed_dash = false;
 let player_is_dashing = false;
 let is_debug_vis = false;
 
@@ -297,7 +299,10 @@ document.onkeydown = function (e) {
     break;
     case 32: // spacebar
     if (e.repeat) break;
-    if (player_shadow_level === 0) break;
+    if (is_pressed_dash) break;
+    if (!player_can_dash) break;
+    is_pressed_dash = true;
+    player_can_dash = false;
     player_is_dashing = true;
     player_dash_counter = PLAYER_DASH_MAX_DURATION;
     break;
@@ -326,6 +331,7 @@ document.onkeyup = function (e) {
     is_pressed_right = false;
     break;
     case 32: // spacebar
+    is_pressed_dash = false;
     player_is_dashing = false;
     player_dash_counter = 0;
     break;
@@ -712,6 +718,11 @@ function update(timestamp, dt) {
     player.facing = "Up";
   }
 
+  if (dx !== 0 && dy !== 0) {
+    dx *= ONE_OVER_SQRT_OF_TWO;
+    dy *= ONE_OVER_SQRT_OF_TWO;
+  }
+
   const rectCopy = player.rect.copy();
   const oldPlayerX = player.x;
   const oldPlayerY = player.y;
@@ -748,6 +759,10 @@ function update(timestamp, dt) {
       }
     });
     player_shadow_level = shadow_level;
+  }
+
+  if (!player_can_dash && player_shadow_level > 0 && !player_is_dashing) {
+    player_can_dash = true;
   }
 }
 
@@ -986,6 +1001,22 @@ function render(timestamp) {
     {
       const span = document.getElementById("playerState");
       span.innerHTML = player.state;
+    }
+    {
+      const span = document.getElementById("canDash");
+      span.innerHTML = player_can_dash;
+    }
+    {
+      const span = document.getElementById("dashCounter");
+      const meter = [];
+      for (let i = 0; i < PLAYER_DASH_MAX_DURATION; i += 50) {
+        if (i < player_dash_counter) meter.push("#");
+        else meter.push("-");
+      }
+      const result = meter.join("");
+      if (span.innerHTML !== result) {
+        span.innerHTML = result;
+      }
     }
   }
 }
