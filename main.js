@@ -4,7 +4,7 @@ async function main() {
   let promises = [];
 
   let img_spritesheet = new Image();
-  img_spritesheet.src = "assets/spritesheet.png";
+  img_spritesheet.src = "assets/spritesheet2.png";
   promises.push(new Promise(resolve => {
     img_spritesheet.onload = function() {
       resolve();
@@ -12,13 +12,24 @@ async function main() {
   }));
 
   promises.push(
-    fetch("assets/map.ldtk")
+    fetch("assets/map2.ldtk")
     .then(response => response.json())
   );
 
   let assets = await Promise.all(promises);
 
   let ldtk_map = assets[1];
+  let ldtk_map_bases = {};
+    for (const level of ldtk_map.levels) {
+      for (const layer of level.layerInstances) {
+        for (const entity of layer.entityInstances) {
+          if (entity.__identifier === "Base") {
+            ldtk_map_bases[entity.iid] = { x: entity.px[0], y: entity.px[1], w: entity.width, h: entity.height };
+          }
+        }
+      }
+    }
+  console.log(ldtk_map_bases);
 
   let canvas = document.querySelector("#canvas");
   let gl = canvas.getContext("webgl2");
@@ -50,18 +61,16 @@ async function main() {
 
   {
     gl.enableVertexAttribArray(0);
-    gl.enableVertexAttribArray(1);
     let buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-      0.0, 0.0, 0.0, 0.0,
-      1.0, 0.0, 1.0, 0.0,
-      1.0, 1.0, 1.0, 1.0,
-      0.0, 1.0, 0.0, 1.0,
+      0.0, 0.0,
+      1.0, 0.0,
+      1.0, 1.0,
+      0.0, 1.0,
     ]), gl.STATIC_DRAW);
 
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 16, 0);
-    gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 16, 8);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
   }
 
   // --- RENDER ---
@@ -85,17 +94,23 @@ async function main() {
 
     for (const level of ldtk_map.levels) {
       for (const layer of level.layerInstances) {
-        for (const tile of layer.gridTiles) {
+        for (const entity of layer.entityInstances) {
+          const tile = entity.__tile;
+          if (!tile) continue;
+          if (!entity.fieldInstances) continue;
+          if (entity.fieldInstances.length < 1) continue;
+          const entityIid = entity.fieldInstances[0].__value.entityIid;
+          const base = ldtk_map_bases[entityIid];
+          const base_center_x = (2 * base.x + base.w) / 2.0;
+          const base_center_y = (2 * base.y + base.h) / 2.0;
           gl.uniform4f(u_srcRect,
-            tile.src[0], tile.src[1], layer.__cWid, layer.__cHei);
+            tile.x, tile.y, tile.w, tile.h);
           gl.uniform4f(u_dstRect,
-            tile.px[0], tile.px[1], layer.__cWid, layer.__cHei);
+            entity.__worldX, entity.__worldY, tile.w, tile.h);
           gl.uniform2f(u_origin,
-            tile.px[0] + 0.5 * (layer.__cWid + layer.__pxTotalOffsetX),
-            tile.px[1] - 0.5 * (layer.__cHei - layer.__pxTotalOffsetY));
+            base_center_x, base_center_y);
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         }
-        console.log(layer.__identifier);
       }
     }
   }
@@ -114,16 +129,16 @@ async function main() {
     gl.uniform2f(u_screenSize, 320, 180);
 
     for (const level of ldtk_map.levels) {
-      let reversed = level.layerInstances.slice().reverse();
-      for (const layer of reversed) {
-        for (const tile of layer.gridTiles) {
+      for (const layer of level.layerInstances) {
+        for (const entity of layer.entityInstances) {
+          const tile = entity.__tile;
+          if (!tile) continue;
           gl.uniform4f(u_srcRect,
-            tile.src[0], tile.src[1], layer.__cWid, layer.__cHei);
+            tile.x, tile.y, tile.w, tile.h);
           gl.uniform4f(u_dstRect,
-            tile.px[0] + layer.__pxTotalOffsetX, tile.px[1] + layer.__pxTotalOffsetY, layer.__cWid, layer.__cHei);
+            entity.__worldX, entity.__worldY, tile.w, tile.h);
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         }
-        console.log(layer.__identifier);
       }
     }
   }

@@ -13,19 +13,21 @@
       uniform vec2 origin;
       
       layout (location=0) in vec2 position;
-      layout (location=1) in vec2 uv;
 
       out vec2 texCoord;
       
       void main() {
-        vec2 r_uv = uv;
-        r_uv = vec2(r_uv.y, r_uv.x);
-        float xCoord = (srcRect.x + r_uv.x * srcRect.z) / texSize.x;
-        float yCoord = (srcRect.y + r_uv.y * srcRect.w) / texSize.y;
+        vec2 uv = position;
+        float xCoord = (srcRect.x + uv.x * srcRect.z) / texSize.x;
+        float yCoord = (srcRect.y + uv.y * srcRect.w) / texSize.y;
         texCoord = vec2(xCoord, yCoord);
 
         float xPx = (dstRect.x + position.x * dstRect.z);
         float yPx = (dstRect.y + position.y * dstRect.w);
+
+        // reflect about origin
+        xPx = xPx + 2.0 * (origin.x - xPx);
+        yPx = yPx + 2.0 * (origin.y - yPx);
 
         // x mapped to [-1, 1]
         float xScreen = xPx / screenSize.x * 2.0 - 1.0;
@@ -63,11 +65,11 @@
       uniform vec4 dstRect;
       
       layout (location=0) in vec2 position;
-      layout (location=1) in vec2 uv;
 
       out vec2 texCoord;
       
       void main() {
+        vec2 uv = position;
         float xCoord = (srcRect.x + uv.x * srcRect.z) / texSize.x;
         float yCoord = (srcRect.y + uv.y * srcRect.w) / texSize.y;
         texCoord = vec2(xCoord, yCoord);
