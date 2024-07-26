@@ -60,11 +60,17 @@ class EntityInstance {
 }
 
 class EntityData {
-  constructor(tex_rect, base_rect, bounding_polygon) {
+  constructor(tex_rect, ss_tex_rect, ss_offset_x, ss_offset_y, base_rect, bounding_polygon) {
     // tex_rect
     // - region of texture
     // - (x, y) of rect is TOP LEFT corner of sprite's bounding box
     this.tex_rect = tex_rect;
+    // ss_tex_rect
+    // - region of self-shadow mask in spritesheet
+    // - offset is relative to TOP LEFT corner of sprite's bounding box
+    this.ss_tex_rect = ss_tex_rect;
+    this.ss_offset_x = ss_offset_x || 0;
+    this.ss_offset_y = ss_offset_y || 0;
     // base_rect
     // - relative to BOTTOM LEFT corner of tex_rect AND base_rect
     // - coordinates are tiles, not pixels
@@ -203,16 +209,6 @@ async function main() {
 
   spritesheet_json = assets[2];
 
-  for (const tag of spritesheet_json.meta.frameTags) {
-    if (tag.name === "player_walk") {
-      const frame = spritesheet_json.frames[tag.from].frame;
-      player_sprite_x = frame.x;
-      player_sprite_y = frame.y;
-      player_sprite_width = frame.w;
-      player_sprite_height = frame.h;
-    }
-  }
-
   // --- INIT WEBGL ---
   let canvas = document.querySelector("#canvas");
   gl = canvas.getContext("webgl2");
@@ -277,6 +273,10 @@ async function main() {
   let fs_tiles = document.querySelector("#fs_tiles").innerHTML.trim();
   shader_programs.tiles = createProgram(gl, vs_tiles, fs_tiles);
 
+  let vs_tiles_mask = document.querySelector("#vs_tiles_mask").innerHTML.trim();
+  let fs_tiles_mask = document.querySelector("#fs_tiles_mask").innerHTML.trim();
+  shader_programs.tiles_mask = createProgram(gl, vs_tiles_mask, fs_tiles_mask);
+
   let vs_shadow = document.querySelector("#vs_shadow").innerHTML.trim();
   let fs_shadow = document.querySelector("#fs_shadow").innerHTML.trim();
   shader_programs.shadow = createProgram(gl, vs_shadow, fs_shadow);
@@ -292,10 +292,26 @@ async function main() {
   // --- LOAD SPRITE DATA ---
 
   for (const tag of spritesheet_json.meta.frameTags) {
+    if (tag.name === "player_walk") {
+      const frame = spritesheet_json.frames[tag.from].frame;
+      player_sprite_x = frame.x;
+      player_sprite_y = frame.y;
+      player_sprite_width = frame.w;
+      player_sprite_height = frame.h;
+    }
+  }
+
+  const frames_length = spritesheet_json.frames.length;
+  for (const tag of spritesheet_json.meta.frameTags) {
     if (!tag.name[0].match(/[A-Z]/g)) continue;
-    const frame = spritesheet_json.frames[tag.from].frame;
+    const f = spritesheet_json.frames[tag.from];
+    const frame = f.frame;
+    const ss = spritesheet_json.frames[frames_length / 2 + tag.from];
     entity_data[tag.name] = new EntityData(
-      new Rect(frame.x, frame.y, frame.w, frame.h));
+      new Rect(frame.x, frame.y, frame.w, frame.h),
+      new Rect(ss.frame.x, ss.frame.y, ss.frame.w, ss.frame.h),
+      ss.spriteSourceSize.x - f.spriteSourceSize.x, ss.spriteSourceSize.y - f.spriteSourceSize.y,
+    );
   }
 
   entity_data["Clocktower"].base_rect = new Rect(0, 0, 2, 2);
@@ -551,6 +567,58 @@ function render() {
       gl.uniform2f(u_origin, base_center_x, base_center_y);
       gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
+
+    // --- subtract entities and add self-shadow ---
+    {
+      gl.useProgram(shader_programs.tiles_mask);
+
+      let u_tex = gl.getUniformLocation(shader_programs.tiles_mask, "tex");
+      let u_texSize = gl.getUniformLocation(shader_programs.tiles_mask, "texSize");
+      let u_screenSize = gl.getUniformLocation(shader_programs.tiles_mask, "screenSize");
+      let u_srcRect = gl.getUniformLocation(shader_programs.tiles_mask, "srcRect");
+      let u_dstRect = gl.getUniformLocation(shader_programs.tiles_mask, "dstRect");
+      let u_cameraPos = gl.getUniformLocation(shader_programs.tiles_mask, "cameraPos");
+
+      gl.blendEquation(gl.FUNC_REVERSE_SUBTRACT);
+      gl.blendFunc(gl.ONE, gl.ONE);
+
+      gl.uniform1i(u_tex, 0);
+      gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
+      gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
+      const [cx, cy] = getCameraPosition();
+      gl.uniform2f(u_cameraPos, cx, cy);
+
+      // subtract entities
+      for (const entity of entity_instances) {
+        const data = entity_data[entity.identifier];
+        if (!data) continue;
+        gl.uniform4f(u_srcRect,
+          data.tex_rect.x, data.tex_rect.y,
+          data.tex_rect.w, data.tex_rect.h);
+        gl.uniform4f(u_dstRect,
+          entity.x, entity.y,
+          data.tex_rect.w, data.tex_rect.h);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      }
+
+      // return to default blend function
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+      // add entity self-shadow
+      for (const entity of entity_instances) {
+        const data = entity_data[entity.identifier];
+        if (!data) continue;
+        gl.uniform4f(u_srcRect,
+          data.ss_tex_rect.x, data.ss_tex_rect.y,
+          data.ss_tex_rect.w, data.ss_tex_rect.h);
+        gl.uniform4f(u_dstRect,
+          entity.x + data.ss_offset_x, entity.y + data.ss_offset_y,
+          data.ss_tex_rect.w, data.ss_tex_rect.h);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      }
+
+    }
   }
 
   // --- main pass ---
@@ -588,35 +656,6 @@ function render() {
           }
         }
       }
-
-      // --- render player ---
-      gl.uniform4f(u_srcRect, player_sprite_x, player_sprite_y, 32, 32);
-      gl.uniform4f(u_dstRect, Math.trunc(player_x), Math.trunc(player_y), 32, 32);
-      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-    }
-
-    // --- render shadow map texture to screen ---
-    {
-      /**
-       * custom blend function for color inversion:
-       *
-       *   finalColor = (1 - dstColor) * srcColor + (1 - srcAlpha) * dstColor
-       *
-       * for shadow map texel (1, 1, 1, 1), finalColor => (1 - dstColor)
-       * for shadow map texel (0, 0, 0, 0), finalColor => dstColor
-       */
-      gl.blendEquation(gl.FUNC_ADD);
-      gl.blendFuncSeparate(
-        gl.ONE_MINUS_DST_COLOR, gl.ONE_MINUS_SRC_ALPHA,
-        gl.ZERO, gl.ONE);
-      gl.useProgram(shader_programs.pass);
-      let u_tex = gl.getUniformLocation(shader_programs.pass, "tex");
-      gl.uniform1i(u_tex, 1);
-      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-
-      // return to default blend function
-      gl.blendEquation(gl.FUNC_ADD);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     }
 
     // --- render entities ---
@@ -648,7 +687,37 @@ function render() {
           data.tex_rect.w, data.tex_rect.h);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
+
+      // --- render player ---
+      gl.uniform4f(u_srcRect, player_sprite_x, player_sprite_y, 32, 32);
+      gl.uniform4f(u_dstRect, Math.trunc(player_x), Math.trunc(player_y), 32, 32);
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
+
+    // --- render shadow map texture to screen ---
+    {
+      /**
+       * custom blend function for color inversion:
+       *
+       *   finalColor = (1 - dstColor) * srcColor + (1 - srcAlpha) * dstColor
+       *
+       * for shadow map texel (1, 1, 1, 1), finalColor => (1 - dstColor)
+       * for shadow map texel (0, 0, 0, 0), finalColor => dstColor
+       */
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFuncSeparate(
+        gl.ONE_MINUS_DST_COLOR, gl.ONE_MINUS_SRC_ALPHA,
+        gl.ZERO, gl.ONE);
+      gl.useProgram(shader_programs.pass);
+      let u_tex = gl.getUniformLocation(shader_programs.pass, "tex");
+      gl.uniform1i(u_tex, 1);
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+
+      // return to default blend function
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    }
+
 
     // --- render debug collision ---
     {

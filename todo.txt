@@ -1,6 +1,5 @@
 - show text on interact
 - interactable entities
-- add self-shadowing data to shadow map
 
 - player animation while walking
 - explore quantizing position to animation framerate
