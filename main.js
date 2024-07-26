@@ -687,34 +687,17 @@ function update(timestamp, dt) {
 
   let dx = 0;
   let dy = 0;
-  if (player.state === "Dash") {
-    switch (player.facing) {
-      case "Down":
-      dy += player_velocity;
-      break;
-      case "Up":
-      dy -= player_velocity;
-      break;
-      case "Right":
-      dx += player_velocity;
-      break;
-      case "Left":
-      dx -= player_velocity;
-      break;
-    }
-  } else {
-    if (is_pressed_right) {
-      dx += player_velocity;
-    }
-    if (is_pressed_left) {
-      dx -= player_velocity;
-    }
-    if (is_pressed_up) {
-      dy -= player_velocity;
-    }
-    if (is_pressed_down) {
-      dy += player_velocity;
-    }
+  if (is_pressed_right) {
+    dx += player_velocity;
+  }
+  if (is_pressed_left) {
+    dx -= player_velocity;
+  }
+  if (is_pressed_up) {
+    dy -= player_velocity;
+  }
+  if (is_pressed_down) {
+    dy += player_velocity;
   }
 
   if (player_dash_counter > 0) {
@@ -774,10 +757,6 @@ function update(timestamp, dt) {
         }
       }
     });
-    // end dash if shadow entered
-    if (player_shadow_level === 0 && shadow_level > 0) {
-      player_dash_counter = 0;
-    }
     player_shadow_level = shadow_level;
   }
 }
