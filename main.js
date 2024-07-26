@@ -274,15 +274,19 @@ window.addEventListener("load", main);
 
 document.onkeydown = function (e) {
   switch (e.keyCode) {
+    case 38: // up arrow
     case 87: // w
     is_pressed_up = true;
     break;
+    case 37: // left arrow
     case 65: // a
     is_pressed_left = true;
     break;
+    case 40: // down arrow
     case 83: // s
     is_pressed_down = true;
     break;
+    case 39: // right arrow
     case 68: // d
     is_pressed_right = true;
     break;
@@ -294,15 +298,19 @@ document.onkeydown = function (e) {
 
 document.onkeyup = function (e) {
   switch (e.keyCode) {
+    case 38: // up arrow
     case 87: // w
     is_pressed_up = false;
     break;
+    case 37: // left arrow
     case 65: // a
     is_pressed_left = false;
     break;
+    case 40: // down arrow
     case 83: // s
     is_pressed_down = false;
     break;
+    case 39: // right arrow
     case 68: // d
     is_pressed_right = false;
     break;
