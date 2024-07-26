@@ -3,8 +3,12 @@
 const ONE_OVER_SQRT_OF_TWO = 1.0 / Math.sqrt(2.0);
 const TARGET_FRAME_RATE = 60.0; // frames per second
 const TARGET_FRAME_DURATION = 1000.0 / TARGET_FRAME_RATE; // milliseconds
+const TILE_SIZE = 16;
 
 let gl;
+let buffer_unit_rect;
+let buffer_debug;
+
 let ldtk_map;
 let ldtk_map_bases = {};
 let img_spritesheet;
@@ -26,8 +30,72 @@ let is_pressed_right = false;
 
 let screen_size_x = 320;
 let screen_size_y = 180;
-let player_sprite_width = 32;
-let player_sprite_height = 32;
+let player_sprite_width;
+let player_sprite_height;
+
+class Rect {
+  constructor(x, y, w, h) {
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+  }
+}
+
+class EntityData {
+  constructor(tex_rect, base_rect, bounding_polygon) {
+    // tex_rect
+    // - region of texture
+    // - (x, y) of rect is TOP LEFT corner of sprite's bounding box
+    this.tex_rect = tex_rect;
+    // base_rect
+    // - relative to BOTTOM LEFT corner of tex_rect AND base_rect
+    // - coordinates are tiles, not pixels
+    // - will flip Y when transforming to world position
+    this.base_rect = base_rect;
+    // bounding_polygon
+    // - format: [x_0, y_0, x_1, y_1, ... x_n, y_n]
+    // - coordinates are tiles, not pixels
+    // - vertices clockwise around the perimeter of the sprite
+    // - (0, 0) is BOTTOM LEFT corner of tex_rect
+    // - will flip Y when transforming to world position
+    this.bounding_polygon = bounding_polygon;
+  }
+
+  wsBoundingPolygon(wx, wy) {
+    let result = [];
+    for (let i = 0; i < this.bounding_polygon.length; i += 2) {
+      const x = this.bounding_polygon[i];
+      const y = this.bounding_polygon[i+1];
+      result.push(wx + TILE_SIZE * x);
+      result.push(wy + TILE_SIZE * (this.tex_rect.h - y));
+    }
+    return result;
+  }
+
+  wsBaseRect(wx, wy) {
+    const x = wx + TILE_SIZE * this.base_rect.x;
+    const y = wy + this.tex_rect.h - TILE_SIZE * (this.base_rect.y + this.base_rect.h);
+    const w = TILE_SIZE * this.base_rect.w;
+    const h = TILE_SIZE * this.base_rect.h;
+    return new Rect(x, y, w, h);
+  }
+}
+
+const entityData = {
+  Clocktower: new EntityData(
+    new Rect(16, 16, 4 * 16, 5 * 16),
+    new Rect(0, 0, 2, 2),
+    [
+      0, 0,
+      0, 2,
+      2, 4,
+      4, 5,
+      4, 2,
+      2, 0,
+    ],
+  )
+};
 
 window.addEventListener("load", main);
 
@@ -121,6 +189,8 @@ async function main() {
       const frame = spritesheet_json.frames[tag.from].frame;
       player_sprite_x = frame.x;
       player_sprite_y = frame.y;
+      player_sprite_width = frame.w;
+      player_sprite_height = frame.h;
     }
   }
 
@@ -182,6 +252,7 @@ async function main() {
 
   gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
+  // --- COMPILE SHADERS ---
 
   let vs_tiles = document.querySelector("#vs_tiles").innerHTML.trim();
   let fs_tiles = document.querySelector("#fs_tiles").innerHTML.trim();
@@ -195,19 +266,37 @@ async function main() {
   let fs_pass = document.querySelector("#fs_pass").innerHTML.trim();
   shader_programs.pass = createProgram(gl, vs_pass, fs_pass);
 
-  {
-    gl.enableVertexAttribArray(0);
-    let buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-      0.0, 0.0,
-      1.0, 0.0,
-      1.0, 1.0,
-      0.0, 1.0,
-    ]), gl.STATIC_DRAW);
+  let vs_debug = document.querySelector("#vs_debug").innerHTML.trim();
+  let fs_debug = document.querySelector("#fs_debug").innerHTML.trim();
+  shader_programs.debug = createProgram(gl, vs_debug, fs_debug);
+  
+  // --- CONSTRUCT GEOMETRY ---
 
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-  }
+  buffer_unit_rect = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer_unit_rect);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    0, 0,
+    1, 0,
+    1, 1,
+    0, 1,
+  ]), gl.STATIC_DRAW);
+
+  buffer_debug = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer_debug);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    0, 0,
+    100, 100,
+  ]), gl.STATIC_DRAW);
+
+  // --- SET UP VERTEX ARRAYS ---
+
+  gl.enableVertexAttribArray(0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer_unit_rect);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  gl.enableVertexAttribArray(1);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer_debug);
+  gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
 
   window.requestAnimationFrame(step);
 }
@@ -427,6 +516,22 @@ function render() {
           }
         }
       }
+    }
+
+    // --- render debug collision ---
+    {
+      gl.useProgram(shader_programs.debug);
+
+      let u_screenSize = gl.getUniformLocation(shader_programs.debug, "screenSize");
+      let u_cameraPos = gl.getUniformLocation(shader_programs.debug, "cameraPos");
+      let u_debugColor = gl.getUniformLocation(shader_programs.debug, "debugColor");
+
+      gl.uniform2f(u_screenSize, 320, 180);
+      gl.uniform2f(u_cameraPos,
+        player_x + 0.5 * player_sprite_width - 0.5 * screen_size_x,
+        player_y + 0.5 * player_sprite_height - 0.5 * screen_size_y);
+      gl.uniform3f(u_debugColor, 1, 0, 0);
+      gl.drawArrays(gl.LINES, 0, 2);
     }
 
   }

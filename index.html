@@ -135,6 +135,40 @@
         fragColor = texture(tex, texCoord);
       }
     </script>
+    <script type="vertex" id="vs_debug">
+      #version 300 es
+
+      uniform vec2 screenSize;
+      uniform vec2 cameraPos;
+      
+      layout (location=1) in vec2 position;
+
+      void main() {
+        float xPos = position.x;
+        float yPos = position.y;
+
+        // translate to camera
+        xPos = xPos - cameraPos.x;
+        yPos = yPos - cameraPos.y;
+
+        xPos = xPos / screenSize.x * 2.0 - 1.0;
+        yPos = -1.0 * (yPos / screenSize.y  * 2.0 - 1.0);
+
+        gl_Position = vec4(xPos, yPos, 0.0, 1.0);
+      }
+    </script>
+    <script type="fragment" id="fs_debug">
+      #version 300 es
+      precision highp float;
+
+      uniform vec3 debugColor;
+
+      out vec4 fragColor;
+
+      void main() {
+        fragColor = vec4(debugColor, 1.0);
+      }
+    </script>
     <script type="module" src="main.js"></script>
   </body>
 </html>
