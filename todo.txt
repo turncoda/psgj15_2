@@ -2,6 +2,7 @@
 - camera follow player (for now)
 - player animation while walking
 - explore quantizing position to animation framerate
+- render order: add height data for all entities
 - add fullscreen mode
 - controller support
 

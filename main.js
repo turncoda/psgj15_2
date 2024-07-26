@@ -24,6 +24,11 @@ let is_pressed_left = false;
 let is_pressed_down = false;
 let is_pressed_right = false;
 
+let screen_size_x = 320;
+let screen_size_y = 180;
+let player_sprite_width = 32;
+let player_sprite_height = 32;
+
 window.addEventListener("load", main);
 
 // keycodes:
@@ -109,11 +114,6 @@ async function main() {
 
   spritesheet_json = assets[2];
 
-  //console.log(ldtk_map);
-  //console.log(ldtk_map_bases);
-  //console.log(`PlayerStart@(${player_x}, ${player_y})`)
-  console.log(spritesheet_json);
-
   for (const tag of spritesheet_json.meta.frameTags) {
     if (tag.name === "player_walk") {
       const frame = spritesheet_json.frames[tag.from].frame;
@@ -129,7 +129,6 @@ async function main() {
     console.error("couldn't obtain webgl2 context");
     return;
   }
-  console.log(gl);
 
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -294,10 +293,14 @@ function render() {
     let u_srcRect = gl.getUniformLocation(shader_programs.shadow, "srcRect");
     let u_dstRect = gl.getUniformLocation(shader_programs.shadow, "dstRect");
     let u_origin = gl.getUniformLocation(shader_programs.shadow, "origin");
+    let u_cameraPos = gl.getUniformLocation(shader_programs.shadow, "cameraPos");
 
     gl.uniform1i(u_tex, 0);
     gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
     gl.uniform2f(u_screenSize, 320, 180);
+    gl.uniform2f(u_cameraPos,
+      player_x + 0.5 * player_sprite_width - 0.5 * screen_size_x,
+      player_y + 0.5 * player_sprite_height - 0.5 * screen_size_y);
 
     for (const level of ldtk_map.levels) {
       for (const layer of level.layerInstances) {
@@ -338,10 +341,14 @@ function render() {
       let u_screenSize = gl.getUniformLocation(shader_programs.tiles, "screenSize");
       let u_srcRect = gl.getUniformLocation(shader_programs.tiles, "srcRect");
       let u_dstRect = gl.getUniformLocation(shader_programs.tiles, "dstRect");
+      let u_cameraPos = gl.getUniformLocation(shader_programs.tiles, "cameraPos");
 
       gl.uniform1i(u_tex, 0);
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
       gl.uniform2f(u_screenSize, 320, 180);
+      gl.uniform2f(u_cameraPos,
+        player_x + 0.5 * player_sprite_width - 0.5 * screen_size_x,
+        player_y + 0.5 * player_sprite_height - 0.5 * screen_size_y);
 
       for (const level of ldtk_map.levels) {
         for (const layer of level.layerInstances) {
@@ -394,10 +401,14 @@ function render() {
       let u_screenSize = gl.getUniformLocation(shader_programs.tiles, "screenSize");
       let u_srcRect = gl.getUniformLocation(shader_programs.tiles, "srcRect");
       let u_dstRect = gl.getUniformLocation(shader_programs.tiles, "dstRect");
+      let u_cameraPos = gl.getUniformLocation(shader_programs.tiles, "cameraPos");
 
       gl.uniform1i(u_tex, 0);
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
       gl.uniform2f(u_screenSize, 320, 180);
+      gl.uniform2f(u_cameraPos,
+        player_x + 0.5 * player_sprite_width - 0.5 * screen_size_x,
+        player_y + 0.5 * player_sprite_height - 0.5 * screen_size_y);
 
       for (const level of ldtk_map.levels) {
         for (const layer of level.layerInstances) {

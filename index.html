@@ -43,6 +43,7 @@
       uniform vec4 srcRect;
       uniform vec4 dstRect;
       uniform vec2 origin;
+      uniform vec2 cameraPos;
       
       layout (location=0) in vec2 position;
 
@@ -61,6 +62,10 @@
         xPx = xPx + 2.0 * (origin.x - xPx);
         yPx = yPx + 2.0 * (origin.y - yPx);
 
+        // translate to camera
+        xPx = xPx - cameraPos.x;
+        yPx = yPx - cameraPos.y;
+
         // x mapped to [-1, 1]
         float xScreen = xPx / screenSize.x * 2.0 - 1.0;
         // y mapped to [1, -1]
@@ -74,10 +79,6 @@
       precision highp float;
 
       uniform sampler2D tex;
-      uniform vec2 texSize;
-      uniform vec2 screenSize;
-      uniform vec4 srcRect;
-      uniform vec4 dstRect;
 
       in vec2 texCoord;
 
@@ -95,6 +96,7 @@
       uniform vec2 screenSize;
       uniform vec4 srcRect;
       uniform vec4 dstRect;
+      uniform vec2 cameraPos;
       
       layout (location=0) in vec2 position;
 
@@ -105,10 +107,17 @@
         float xCoord = (srcRect.x + uv.x * srcRect.z) / texSize.x;
         float yCoord = (srcRect.y + uv.y * srcRect.w) / texSize.y;
         texCoord = vec2(xCoord, yCoord);
-        float xPos = (dstRect.x + position.x * dstRect.z) / screenSize.x;
-        xPos = xPos * 2.0 - 1.0;
-        float yPos = (dstRect.y + position.y * dstRect.w) / screenSize.y;
-        yPos = -1.0 * (yPos * 2.0 - 1.0);
+
+        float xPos = (dstRect.x + position.x * dstRect.z);
+        float yPos = (dstRect.y + position.y * dstRect.w);
+
+        // translate to camera
+        xPos = xPos - cameraPos.x;
+        yPos = yPos - cameraPos.y;
+
+        xPos = xPos / screenSize.x * 2.0 - 1.0;
+        yPos = -1.0 * (yPos / screenSize.y  * 2.0 - 1.0);
+
         gl_Position = vec4(xPos, yPos, 0.0, 1.0);
       }
     </script>
@@ -117,10 +126,6 @@
       precision highp float;
 
       uniform sampler2D tex;
-      uniform vec2 texSize;
-      uniform vec2 screenSize;
-      uniform vec4 srcRect;
-      uniform vec4 dstRect;
 
       in vec2 texCoord;
 
