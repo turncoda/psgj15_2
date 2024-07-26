@@ -28,23 +28,20 @@ let player;
 let player_sprite_x, player_sprite_y;
 const PLAYER_LOW_SPEED = 0.5;
 const PLAYER_HIGH_SPEED = 1.5;
-const PLAYER_DASH_SPEED = 3;
+const PLAYER_DASH_SPEED = 2.4;
 let player_velocity = 0;
 let player_velocity_target = 0;
 const PLAYER_VELOCITY_MAX_INCREMENT = .1;
 const PLAYER_VELOCITY_MAX_DECREMENT = .05;
-const PLAYER_VELOCITY_OVERDRIVE_MAX_DECREMENT = .2;
 let player_light_sensors;
 let player_shadow_level;
-let player_try_dash = false;
-let player_dash_buffer = 0;
 let player_dash_counter = 0;
-const PLAYER_DASH_BUFFER_DURATION = 200;
-const PLAYER_DASH_DURATION = 500;
+const PLAYER_DASH_MAX_DURATION = 500;
 let is_pressed_up = false;
 let is_pressed_left = false;
 let is_pressed_down = false;
 let is_pressed_right = false;
+let player_is_dashing = false;
 let is_debug_vis = false;
 
 class Rect {
@@ -300,8 +297,9 @@ document.onkeydown = function (e) {
     break;
     case 32: // spacebar
     if (e.repeat) break;
-    player_try_dash = true;
-    player_dash_buffer = PLAYER_DASH_BUFFER_DURATION;
+    if (player_shadow_level === 0) break;
+    player_is_dashing = true;
+    player_dash_counter = PLAYER_DASH_MAX_DURATION;
     break;
     case 80: // p
     is_debug_vis = !is_debug_vis;
@@ -326,6 +324,10 @@ document.onkeyup = function (e) {
     case 39: // right arrow
     case 68: // d
     is_pressed_right = false;
+    break;
+    case 32: // spacebar
+    player_is_dashing = false;
+    player_dash_counter = 0;
     break;
   }
 };
@@ -650,39 +652,27 @@ function step(timestamp) {
 }
 
 function update(timestamp, dt) {
-  player_dash_buffer = Math.max(0, player_dash_buffer - dt);
   player_dash_counter = Math.max(0, player_dash_counter - dt);
-  if (player_try_dash && player_shadow_level === 0) {
-    player_try_dash = false;
+  if (player_dash_counter === 0) {
+    player_is_dashing = false;
   }
-  if (player_dash_buffer === 0) {
-    player_try_dash = false;
-  }
-  if (player_try_dash && player_dash_counter === 0) {
-    player_try_dash = false;
-    player_dash_counter = PLAYER_DASH_DURATION;
-  }
+  player_velocity_target = lerp(
+    PLAYER_LOW_SPEED,
+    PLAYER_HIGH_SPEED,
+    2 * player_shadow_level / player_light_sensors.length);
 
-  if (player_dash_counter > 0) {
-    player_velocity_target = PLAYER_DASH_SPEED;
+  if (player_is_dashing) {
     player_velocity = PLAYER_DASH_SPEED;
+    player_velocity_target = PLAYER_DASH_SPEED;
   } else {
-    player_velocity_target = lerp(
-      PLAYER_LOW_SPEED,
-      PLAYER_HIGH_SPEED,
-      2 * player_shadow_level / player_light_sensors.length);
-  }
-
-  if (player_velocity < player_velocity_target) {
-    const diff =  player_velocity_target - player_velocity;
-    player_velocity += Math.min(diff, PLAYER_VELOCITY_MAX_INCREMENT);
-  } else {
-    let decrement = PLAYER_VELOCITY_MAX_DECREMENT;
-    if (player_velocity > PLAYER_HIGH_SPEED) {
-      decrement = PLAYER_VELOCITY_OVERDRIVE_MAX_DECREMENT;
+    if (player_velocity < player_velocity_target) {
+      const diff =  player_velocity_target - player_velocity;
+      player_velocity += Math.min(diff, PLAYER_VELOCITY_MAX_INCREMENT);
+    } else {
+      let decrement = PLAYER_VELOCITY_MAX_DECREMENT;
+      const diff = player_velocity - player_velocity_target;
+      player_velocity -= Math.min(diff, decrement);
     }
-    const diff = player_velocity - player_velocity_target;
-    player_velocity -= Math.min(diff, decrement);
   }
 
   let dx = 0;
@@ -700,7 +690,7 @@ function update(timestamp, dt) {
     dy += player_velocity;
   }
 
-  if (player_dash_counter > 0) {
+  if (player_is_dashing) {
     player.setState("Dash", timestamp);
   } else {
     if (dx !== 0 || dy !== 0) {
@@ -996,18 +986,6 @@ function render(timestamp) {
     {
       const span = document.getElementById("playerState");
       span.innerHTML = player.state;
-    }
-    {
-      const span = document.getElementById("playerDashCounter");
-      span.innerHTML = Math.round(player_dash_counter);
-    }
-    {
-      const span = document.getElementById("playerDashBuffer");
-      span.innerHTML = Math.round(player_dash_buffer);
-    }
-    {
-      const span = document.getElementById("playerDashInput");
-      span.innerHTML = player_try_dash;
     }
   }
 }

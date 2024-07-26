@@ -1,6 +1,4 @@
-- add dash animation
-- enter dash mode on spacebar press, set counter, decrement counter every update, while counter is above zero, set state with priority
-- add dash ability
+- dash buffer
 - show text on interact
 - interactable entities
 - item/inventory system
@@ -13,6 +11,7 @@
 - do level design
 - add variety of floor tiles
 
+- player dash trail (cyan after image)
 - render intersection of player silhouette and self-shadow to shadow map first
 - explore quantizing position to animation framerate
 - add light sensor to ui
