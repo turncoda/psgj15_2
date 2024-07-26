@@ -71,7 +71,12 @@
   "size": { "w": 128, "h": 464 },
   "scale": "1",
   "frameTags": [
-   { "name": "player_walk", "from": 3, "to": 4, "direction": "forward", "color": "#000000ff" }
+   { "name": "Clocktower", "from": 0, "to": 0, "direction": "forward", "color": "#000000ff" },
+   { "name": "House", "from": 1, "to": 1, "direction": "forward", "color": "#000000ff" },
+   { "name": "Well", "from": 2, "to": 2, "direction": "forward", "color": "#000000ff" },
+   { "name": "player_walk", "from": 3, "to": 4, "direction": "forward", "color": "#000000ff" },
+   { "name": "ground", "from": 5, "to": 5, "direction": "forward", "color": "#000000ff" },
+   { "name": "DebugBlock", "from": 6, "to": 6, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "Layer 1", "opacity": 255, "blendMode": "normal" }

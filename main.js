@@ -18,6 +18,7 @@ let img_spritesheet;
 let fb;
 let shader_programs = {};
 let spritesheet_json;
+let entity_colliders = {};
 
 let prev_timestamp = 0;
 let time_since_last_draw = 0;
@@ -63,27 +64,27 @@ class EntityData {
     this.bounding_polygon = bounding_polygon;
   }
 
-  wsBoundingPolygon(wx, wy) {
+  getBoundingPolygon() {
     let result = [];
     for (let i = 0; i < this.bounding_polygon.length; i += 2) {
       const x = this.bounding_polygon[i];
       const y = this.bounding_polygon[i+1];
-      result.push(wx + TILE_SIZE * x);
-      result.push(wy + TILE_SIZE * (this.tex_rect.h - y));
+      result.push(TILE_SIZE * x);
+      result.push(this.tex_rect.h - TILE_SIZE * y);
     }
     return result;
   }
 
-  wsBaseRect(wx, wy) {
-    const x = wx + TILE_SIZE * this.base_rect.x;
-    const y = wy + this.tex_rect.h - TILE_SIZE * (this.base_rect.y + this.base_rect.h);
+  getBaseRect() {
+    const x = TILE_SIZE * this.base_rect.x;
+    const y = this.tex_rect.h - TILE_SIZE * (this.base_rect.y + this.base_rect.h);
     const w = TILE_SIZE * this.base_rect.w;
     const h = TILE_SIZE * this.base_rect.h;
     return new Rect(x, y, w, h);
   }
 }
 
-const entityData = {
+const ENTITY_DATA = {
   Clocktower: new EntityData(
     new Rect(16, 16, 4 * 16, 5 * 16),
     new Rect(0, 0, 2, 2),
@@ -289,6 +290,15 @@ async function main() {
     100, 100,
   ]), gl.STATIC_DRAW);
 
+  for (const entity_name of Object.keys(ENTITY_DATA)) {
+    const vertices = ENTITY_DATA[entity_name].getBoundingPolygon();
+    console.log(vertices);
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    entity_colliders[entity_name] = {buffer: buffer, num_verts: vertices.length / 2};
+  }
+
   // --- SET UP VERTEX ARRAYS ---
 
   gl.enableVertexAttribArray(0);
@@ -297,6 +307,8 @@ async function main() {
 
   gl.enableVertexAttribArray(1);
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer_debug);
+  gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, entity_colliders["Clocktower"].buffer);
   gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
 
   window.requestAnimationFrame(step);
@@ -522,13 +534,26 @@ function render() {
 
       let u_screenSize = gl.getUniformLocation(shader_programs.debug, "screenSize");
       let u_cameraPos = gl.getUniformLocation(shader_programs.debug, "cameraPos");
+      let u_worldPos = gl.getUniformLocation(shader_programs.debug, "worldPos");
       let u_debugColor = gl.getUniformLocation(shader_programs.debug, "debugColor");
 
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       const [cx, cy] = getCameraPosition();
       gl.uniform2f(u_cameraPos, cx, cy);
       gl.uniform3f(u_debugColor, 1, 0, 0);
-      gl.drawArrays(gl.LINES, 0, 2);
+
+
+      for (const level of ldtk_map.levels) {
+        for (const layer of level.layerInstances) {
+          for (const entity of layer.entityInstances) {
+            const collider = entity_colliders[entity.__identifier];
+            if (!collider) continue;
+            gl.bindBuffer(gl.ARRAY_BUFFER, collider.buffer);
+            gl.uniform2f(u_worldPos, entity.__worldX, entity.__worldY);
+            gl.drawArrays(gl.LINE_LOOP, 0, collider.num_verts);
+          }
+        }
+      }
     }
 
   }
