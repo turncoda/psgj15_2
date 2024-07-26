@@ -1,3 +1,5 @@
+- debug visualize player bounding polygon
+
 - player animation while walking
 - explore quantizing position to animation framerate
 
@@ -5,8 +7,6 @@
 
 - render order: render diagonals from bottom left to top right
 
-- add convex polygon collision data for all entities
-- derive shadow collision from entity collision data
 
 - add fullscreen mode
 - controller support

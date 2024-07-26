@@ -11,6 +11,7 @@ const SCREEN_HEIGHT = 180;
 let gl;
 let buffer_unit_rect;
 let buffer_debug;
+let buffer_debug_length;
 
 let ldtk_map;
 let ldtk_map_bases = {};
@@ -318,20 +319,49 @@ async function main() {
     0, 1,
   ]), gl.STATIC_DRAW);
 
-  buffer_debug = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer_debug);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-    0, 0,
-    100, 100,
-  ]), gl.STATIC_DRAW);
+  {
+    buffer_debug = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer_debug);
+    const verts = [
+      0, 0,
+      1, 0,
+      1, 1,
+      0, 1,
+      0, 0,
+      1, 1,
+      1, 0,
+      0, 1,
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+    buffer_debug_length = verts.length / 2;
+  }
 
   for (const entity_name of Object.keys(entity_data)) {
     const data = entity_data[entity_name]
     const vertices = data.getBoundingPolygon();
+
     data.num_verts = vertices.length / 2;
-    data.buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, data.buffer);
+    data.bounding_polygon_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, data.bounding_polygon_buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+    const base_rect = data.getBaseRect();
+    const base_center_x = base_rect.x + 0.5 * base_rect.w;
+    const base_center_y = base_rect.y + 0.5 * base_rect.h;
+
+    const shadow_vertices = Array(vertices.length);
+    for (let i = 0; i < vertices.length; i += 2) {
+      const x = vertices[i];
+      const y = vertices[i+1];
+      const [scaled_x, scaled_y] =
+        scalePoint(x, y, base_center_x, base_center_y, -1);
+      shadow_vertices[i] = scaled_x;
+      shadow_vertices[i+1] = scaled_y;
+    }
+
+    data.shadow_bounding_polygon_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, data.shadow_bounding_polygon_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(shadow_vertices), gl.STATIC_DRAW);
   }
 
   // --- SET UP VERTEX ARRAYS ---
@@ -567,22 +597,51 @@ function render() {
       let u_cameraPos = gl.getUniformLocation(shader_programs.debug, "cameraPos");
       let u_worldPos = gl.getUniformLocation(shader_programs.debug, "worldPos");
       let u_debugColor = gl.getUniformLocation(shader_programs.debug, "debugColor");
+      let u_scale = gl.getUniformLocation(shader_programs.debug, "scale");
 
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       const [cx, cy] = getCameraPosition();
       gl.uniform2f(u_cameraPos, cx, cy);
-      gl.uniform3f(u_debugColor, 1, 0, 0);
-
+      gl.uniform2f(u_scale, 1, 1);
 
       for (const level of ldtk_map.levels) {
         for (const layer of level.layerInstances) {
           for (const entity of layer.entityInstances) {
             const data = entity_data[entity.__identifier];
             if (!data) continue;
-            gl.bindBuffer(gl.ARRAY_BUFFER, data.buffer);
+
+            // --- draw bounding polygon ---
+            gl.uniform3f(u_debugColor, 1, 0, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, data.bounding_polygon_buffer);
             gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
             gl.uniform2f(u_worldPos, entity.__worldX, entity.__worldY);
             gl.drawArrays(gl.LINE_LOOP, 0, data.num_verts);
+
+            // --- draw shadow bounding polygon ---
+            gl.uniform3f(u_debugColor, 0, 1, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, data.shadow_bounding_polygon_buffer);
+            gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
+            gl.uniform2f(u_worldPos, entity.__worldX, entity.__worldY);
+            gl.drawArrays(gl.LINE_LOOP, 0, data.num_verts);
+          }
+        }
+      }
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer_debug);
+      gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform3f(u_debugColor, 0, 0, 1);
+
+      for (const level of ldtk_map.levels) {
+        for (const layer of level.layerInstances) {
+          for (const entity of layer.entityInstances) {
+            const data = entity_data[entity.__identifier];
+            if (!data) continue;
+            const base_rect = data.getBaseRect();
+            gl.uniform2f(u_scale, base_rect.w, base_rect.h);
+            gl.uniform2f(u_worldPos,
+              entity.__worldX + base_rect.x,
+              entity.__worldY + base_rect.y);
+            gl.drawArrays(gl.LINE_STRIP, 0, buffer_debug_length);
           }
         }
       }
@@ -595,6 +654,13 @@ function getCameraPosition() {
   return [
     player_x + 3 * TILE_SIZE - 0.5 * SCREEN_WIDTH,
     player_y - 0.5 * SCREEN_HEIGHT,
+  ];
+}
+
+function scalePoint(x, y, origin_x, origin_y, scale) {
+  return [
+    (x - origin_x) * scale + origin_x,
+    (y - origin_y) * scale + origin_y,
   ];
 }
 

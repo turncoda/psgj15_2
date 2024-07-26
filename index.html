@@ -141,12 +141,13 @@
       uniform vec2 screenSize;
       uniform vec2 worldPos;
       uniform vec2 cameraPos;
+      uniform vec2 scale;
       
       layout (location=1) in vec2 position;
 
       void main() {
-        float xPos = position.x + worldPos.x - cameraPos.x;
-        float yPos = position.y + worldPos.y - cameraPos.y;
+        float xPos = scale.x * position.x + worldPos.x - cameraPos.x;
+        float yPos = scale.y * position.y + worldPos.y - cameraPos.y;
 
         xPos = xPos / screenSize.x * 2.0 - 1.0;
         yPos = -1.0 * (yPos / screenSize.y  * 2.0 - 1.0);
