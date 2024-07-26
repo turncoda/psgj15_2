@@ -82,6 +82,9 @@ class Entity {
     this.data = data;
     this.shadowPolygon = polygonFromArray(x, y, data.getShadowBoundingPolygon());
     this.rect = new Rect(x + data.lsBox.x, y + data.lsBox.y, data.lsBox.w, data.lsBox.h);
+    this._state = "Static";
+    this.facing = "Down";
+    this.animStartTime = 0;
   }
 
   get x() {
@@ -99,6 +102,19 @@ class Entity {
     this._y = value;
     this.rect.y = value + this.data.lsBox.y;
     this.shadowPolygon.pos.y = value;
+  }
+  get state() {
+    return this._state;
+  }
+  setState(s, t) {
+    if (this._state !== s) {
+      this.animStartTime = t
+    }
+    this._state = s;
+  }
+
+  getFrame(t) {
+    return this.data.animations[this.state][this.facing].getFrame(t - this.animStartTime);
   }
 }
 
@@ -119,7 +135,8 @@ class Entity {
 class Frame {
   constructor(x, y, w, h, duration) {
     this.srcRect = new Rect(x, y, w, h);
-    this.duration = duration;
+    this.duration = duration ?? 1;
+    console.assert(this.duration > 0);
 
     // optional
     this.ssSrcRect = new Rect(0, 0, 0, 0);
@@ -147,9 +164,21 @@ class Animation {
     console.assert(frames && frames.length > 0);
     this.loop = true;
     this.frames = frames;
+    this.totalDuration = this.frames.map(f => f.duration).reduce((a, b) => a + b);
   }
   get height() {
     return this.frames[0].srcRect.h;
+  }
+  getFrame(t) {
+    let timeInAnim = t % this.totalDuration;
+    for (const frame of this.frames) {
+      if (timeInAnim > frame.duration) {
+        timeInAnim -= frame.duration;
+      } else {
+        return frame;
+      }
+    }
+    console.assert(false); // should not be reached
   }
 }
 
@@ -389,7 +418,6 @@ async function main() {
   // --- LOAD SPRITE DATA ---
 
   for (const tag of spritesheet_json.meta.frameTags) {
-    if (tag.name.startsWith("t_")) continue;
     let [id, animName] = tag.name.split("_");
     if (!animName) animName = "Static";
     if (!(id in entity_data)) {
@@ -409,7 +437,6 @@ async function main() {
       entity_data[id].addAnimation(animName, facing, new Animation(frames));
     }
   }
-  console.log(entity_data);
 
   entity_data["Clocktower"].base_rect = new Rect(0, 0, 2, 2);
   entity_data["Clocktower"].bounding_polygon = [
@@ -595,13 +622,13 @@ function step(timestamp) {
   time_since_last_draw += dt;
   if (time_since_last_draw >= TARGET_FRAME_DURATION) {
     time_since_last_draw %= TARGET_FRAME_DURATION;
-    update();
-    render();
+    update(timestamp);
+    render(timestamp);
   }
   window.requestAnimationFrame(step);
 }
 
-function update() {
+function update(timestamp) {
   player_velocity_target = lerp(
     PLAYER_LOW_SPEED,
     PLAYER_HIGH_SPEED,
@@ -628,6 +655,11 @@ function update() {
   }
   if (is_pressed_down) {
     dy += player_velocity;
+  }
+  if (dx !== 0 || dy !== 0) {
+    player.setState("Walk", timestamp);
+  } else {
+    player.setState("Idle", timestamp);
   }
 
   const rectCopy = player.rect.copy();
@@ -669,7 +701,7 @@ function update() {
   }
 }
 
-function render() {
+function render(timestamp) {
   // --- build shadow map ---
   {
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb);
@@ -808,7 +840,7 @@ function render() {
       gl.uniform2f(u_cameraPos, (cx), (cy));
 
       for (const entity of entity_instances) {
-        const rect = entity.data.getStaticFrame().srcRect;
+        const rect = entity.getFrame(timestamp).srcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
         gl.uniform4f(u_dstRect, entity.x, entity.y, rect.w, rect.h);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
@@ -902,6 +934,10 @@ function render() {
     {
       const span = document.getElementById("playerSpeed");
       span.innerHTML = player_velocity.toPrecision(2);
+    }
+    {
+      const span = document.getElementById("playerState");
+      span.innerHTML = player.state;
     }
   }
 }

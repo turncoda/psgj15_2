@@ -1,4 +1,3 @@
-- player walk animation
 - player facing
 - render order: render diagonals from bottom left to top right
 - add dash ability
