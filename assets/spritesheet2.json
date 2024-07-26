@@ -1,5 +1,6 @@
-{ "frames": {
-   "spritesheet2 0.aseprite": {
+{ "frames": [
+   {
+    "filename": "spritesheet2 0.aseprite",
     "frame": { "x": 0, "y": 0, "w": 64, "h": 80 },
     "rotated": false,
     "trimmed": true,
@@ -7,31 +8,61 @@
     "sourceSize": { "w": 128, "h": 128 },
     "duration": 100
    },
-   "spritesheet2 1.aseprite": {
-    "frame": { "x": 0, "y": 80, "w": 112, "h": 112 },
+   {
+    "filename": "spritesheet2 1.aseprite",
+    "frame": { "x": 0, "y": 80, "w": 112, "h": 96 },
     "rotated": false,
     "trimmed": true,
-    "spriteSourceSize": { "x": 0, "y": 16, "w": 112, "h": 112 },
+    "spriteSourceSize": { "x": 0, "y": 32, "w": 112, "h": 96 },
     "sourceSize": { "w": 128, "h": 128 },
     "duration": 100
    },
-   "spritesheet2 2.aseprite": {
-    "frame": { "x": 0, "y": 192, "w": 48, "h": 64 },
+   {
+    "filename": "spritesheet2 2.aseprite",
+    "frame": { "x": 0, "y": 176, "w": 48, "h": 64 },
     "rotated": false,
     "trimmed": true,
     "spriteSourceSize": { "x": 0, "y": 64, "w": 48, "h": 64 },
     "sourceSize": { "w": 128, "h": 128 },
     "duration": 100
+   },
+   {
+    "filename": "spritesheet2 3.aseprite",
+    "frame": { "x": 0, "y": 240, "w": 32, "h": 32 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 96, "w": 32, "h": 32 },
+    "sourceSize": { "w": 128, "h": 128 },
+    "duration": 100
+   },
+   {
+    "filename": "spritesheet2 4.aseprite",
+    "frame": { "x": 0, "y": 272, "w": 32, "h": 32 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 96, "w": 32, "h": 32 },
+    "sourceSize": { "w": 128, "h": 128 },
+    "duration": 100
+   },
+   {
+    "filename": "spritesheet2 5.aseprite",
+    "frame": { "x": 0, "y": 304, "w": 16, "h": 16 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 112, "w": 16, "h": 16 },
+    "sourceSize": { "w": 128, "h": 128 },
+    "duration": 100
    }
- },
+ ],
  "meta": {
   "app": "https://www.aseprite.org/",
   "version": "1.3-rc6-x64",
   "image": "spritesheet2.png",
   "format": "RGBA8888",
-  "size": { "w": 112, "h": 256 },
+  "size": { "w": 112, "h": 320 },
   "scale": "1",
   "frameTags": [
+   { "name": "player_walk", "from": 3, "to": 4, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "Layer 1", "opacity": 255, "blendMode": "normal" }

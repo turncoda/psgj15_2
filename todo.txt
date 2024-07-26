@@ -1,5 +1,3 @@
-- render shadows to texture
-  - figure out how to render to texture <https://github.com/WebGLSamples/WebGL2Samples/blob/master/samples/fbo_rtt_texture_array.html>
 - split out render function and set up animation
 - static camera on grid
 - handle keyboard input
