@@ -28,12 +28,19 @@ let player;
 let player_sprite_x, player_sprite_y;
 const PLAYER_LOW_SPEED = 0.5;
 const PLAYER_HIGH_SPEED = 1.5;
+const PLAYER_DASH_SPEED = 3;
 let player_velocity = 0;
 let player_velocity_target = 0;
 const PLAYER_VELOCITY_MAX_INCREMENT = .1;
 const PLAYER_VELOCITY_MAX_DECREMENT = .05;
+const PLAYER_VELOCITY_OVERDRIVE_MAX_DECREMENT = .2;
 let player_light_sensors;
 let player_shadow_level;
+let player_try_dash = false;
+let player_dash_buffer = 0;
+let player_dash_counter = 0;
+const PLAYER_DASH_BUFFER_DURATION = 200;
+const PLAYER_DASH_DURATION = 500;
 let is_pressed_up = false;
 let is_pressed_left = false;
 let is_pressed_down = false;
@@ -273,6 +280,7 @@ window.addEventListener("load", main);
  */
 
 document.onkeydown = function (e) {
+  //console.log(e.keyCode);
   switch (e.keyCode) {
     case 38: // up arrow
     case 87: // w
@@ -289,6 +297,11 @@ document.onkeydown = function (e) {
     case 39: // right arrow
     case 68: // d
     is_pressed_right = true;
+    break;
+    case 32: // spacebar
+    if (e.repeat) break;
+    player_try_dash = true;
+    player_dash_buffer = PLAYER_DASH_BUFFER_DURATION;
     break;
     case 80: // p
     is_debug_vis = !is_debug_vis;
@@ -630,24 +643,46 @@ function step(timestamp) {
   time_since_last_draw += dt;
   if (time_since_last_draw >= TARGET_FRAME_DURATION) {
     time_since_last_draw %= TARGET_FRAME_DURATION;
-    update(timestamp);
+    update(timestamp, dt);
     render(timestamp);
   }
   window.requestAnimationFrame(step);
 }
 
-function update(timestamp) {
-  player_velocity_target = lerp(
-    PLAYER_LOW_SPEED,
-    PLAYER_HIGH_SPEED,
-    2 * player_shadow_level / player_light_sensors.length);
+function update(timestamp, dt) {
+  player_dash_buffer = Math.max(0, player_dash_buffer - dt);
+  player_dash_counter = Math.max(0, player_dash_counter - dt);
+  if (player_try_dash && player_shadow_level === 0) {
+    player_try_dash = false;
+  }
+  if (player_dash_buffer === 0) {
+    player_try_dash = false;
+  }
+  if (player_try_dash && player_dash_counter === 0) {
+    player_try_dash = false;
+    player_dash_counter = PLAYER_DASH_DURATION;
+  }
+
+  if (player_dash_counter > 0) {
+    player_velocity_target = PLAYER_DASH_SPEED;
+    player_velocity = PLAYER_DASH_SPEED;
+  } else {
+    player_velocity_target = lerp(
+      PLAYER_LOW_SPEED,
+      PLAYER_HIGH_SPEED,
+      2 * player_shadow_level / player_light_sensors.length);
+  }
 
   if (player_velocity < player_velocity_target) {
     const diff =  player_velocity_target - player_velocity;
     player_velocity += Math.min(diff, PLAYER_VELOCITY_MAX_INCREMENT);
   } else {
+    let decrement = PLAYER_VELOCITY_MAX_DECREMENT;
+    if (player_velocity > PLAYER_HIGH_SPEED) {
+      decrement = PLAYER_VELOCITY_OVERDRIVE_MAX_DECREMENT;
+    }
     const diff = player_velocity - player_velocity_target;
-    player_velocity -= Math.min(diff, PLAYER_VELOCITY_MAX_DECREMENT);
+    player_velocity -= Math.min(diff, decrement);
   }
 
   let dx = 0;
@@ -665,10 +700,14 @@ function update(timestamp) {
     dy += player_velocity;
   }
 
-  if (dx !== 0 || dy !== 0) {
-    player.setState("Walk", timestamp);
+  if (player_dash_counter > 0) {
+    player.setState("Dash", timestamp);
   } else {
-    player.setState("Idle", timestamp);
+    if (dx !== 0 || dy !== 0) {
+      player.setState("Walk", timestamp);
+    } else {
+      player.setState("Idle", timestamp);
+    }
   }
 
   if (dx > 0) {
@@ -957,6 +996,18 @@ function render(timestamp) {
     {
       const span = document.getElementById("playerState");
       span.innerHTML = player.state;
+    }
+    {
+      const span = document.getElementById("playerDashCounter");
+      span.innerHTML = Math.round(player_dash_counter);
+    }
+    {
+      const span = document.getElementById("playerDashBuffer");
+      span.innerHTML = Math.round(player_dash_buffer);
+    }
+    {
+      const span = document.getElementById("playerDashInput");
+      span.innerHTML = player_try_dash;
     }
   }
 }

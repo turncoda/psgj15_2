@@ -1,9 +1,11 @@
-- render order: render diagonals from bottom left to top right
+- add dash animation
+- enter dash mode on spacebar press, set counter, decrement counter every update, while counter is above zero, set state with priority
 - add dash ability
 - show text on interact
 - interactable entities
-
 - item/inventory system
+
+- render order: render diagonals from bottom left to top right
 
 - quantize camera to area grid
 - quantize character to pixel grid
