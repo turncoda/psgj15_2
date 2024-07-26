@@ -3,6 +3,38 @@
   </head>
   <body style="margin:0">
     <canvas id="canvas" width="640px" height="360px"></canvas>
+    <script type="vertex" id="vs_pass">
+      #version 300 es
+
+      layout (location=0) in vec2 position;
+
+      out vec2 texCoord;
+      
+      void main() {
+        texCoord = position;
+
+        // x mapped to [-1, 1]
+        float xScreen = position.x * 2.0 - 1.0;
+        // y mapped to [-1, 1]
+        float yScreen = position.y * 2.0 - 1.0;
+
+        gl_Position = vec4(xScreen, yScreen, 0.0, 1.0);
+      }
+    </script>
+    <script type="fragment" id="fs_pass">
+      #version 300 es
+      precision highp float;
+
+      uniform sampler2D tex;
+
+      in vec2 texCoord;
+
+      out vec4 fragColor;
+
+      void main() {
+        fragColor = texture(tex, texCoord);
+      }
+    </script>
     <script type="vertex" id="vs_shadow">
       #version 300 es
 
@@ -53,7 +85,7 @@
 
       void main() {
         fragColor = texture(tex, texCoord);
-        fragColor.rgb = vec3(0.0, 0.0, 0.0);
+        fragColor.rgb = vec3(fragColor.a);
       }
     </script>
     <script type="vertex" id="vs_tiles">

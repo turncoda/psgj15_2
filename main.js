@@ -42,14 +42,53 @@ async function main() {
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-
   let texture = gl.createTexture();
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img_spritesheet);
+  gl.texImage2D(gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    img_spritesheet);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
+  let tex_shadow_map = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, tex_shadow_map);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texImage2D(gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      gl.drawingBufferWidth,
+      gl.drawingBufferHeight,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null);
+
+  // --- FRAMEBUFFER (for render to texture) ---
+
+  let frameBuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, frameBuffer);
+  gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D,
+    tex_shadow_map, 0);
+
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+
+  {
+    let status = gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER);
+    if (status != gl.FRAMEBUFFER_COMPLETE) {
+        console.error(status.toString(16));
+        return;
+    }
+  }
+
+  gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+
 
   let vs_tiles = document.querySelector("#vs_tiles").innerHTML.trim();
   let fs_tiles = document.querySelector("#fs_tiles").innerHTML.trim();
@@ -58,6 +97,10 @@ async function main() {
   let vs_shadow = document.querySelector("#vs_shadow").innerHTML.trim();
   let fs_shadow = document.querySelector("#fs_shadow").innerHTML.trim();
   let sprog_shadow = createProgram(gl, vs_shadow, fs_shadow);
+
+  let vs_pass = document.querySelector("#vs_pass").innerHTML.trim();
+  let fs_pass = document.querySelector("#fs_pass").innerHTML.trim();
+  let sprog_pass = createProgram(gl, vs_pass, fs_pass);
 
   {
     gl.enableVertexAttribArray(0);
@@ -75,10 +118,13 @@ async function main() {
 
   // --- RENDER ---
 
-  gl.clearColor(0.5, 0.5, 0.5, 1.0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-
+  // --- build shadow map ---
   {
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, frameBuffer);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
     gl.useProgram(sprog_shadow);
 
     let u_tex = gl.getUniformLocation(sprog_shadow, "tex");
@@ -115,32 +161,93 @@ async function main() {
     }
   }
 
+  // --- main pass ---
   {
-    gl.useProgram(sprog_tiles);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
-    let u_tex = gl.getUniformLocation(sprog_tiles, "tex");
-    let u_texSize = gl.getUniformLocation(sprog_tiles, "texSize");
-    let u_screenSize = gl.getUniformLocation(sprog_tiles, "screenSize");
-    let u_srcRect = gl.getUniformLocation(sprog_tiles, "srcRect");
-    let u_dstRect = gl.getUniformLocation(sprog_tiles, "dstRect");
+    gl.clearColor(0.7, 0.7, 0.7, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
-    gl.uniform1i(u_tex, 0);
-    gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
-    gl.uniform2f(u_screenSize, 320, 180);
+    // --- render tiles ---
+    {
+      gl.useProgram(sprog_tiles);
 
-    for (const level of ldtk_map.levels) {
-      for (const layer of level.layerInstances) {
-        for (const entity of layer.entityInstances) {
-          const tile = entity.__tile;
-          if (!tile) continue;
-          gl.uniform4f(u_srcRect,
-            tile.x, tile.y, tile.w, tile.h);
-          gl.uniform4f(u_dstRect,
-            entity.__worldX, entity.__worldY, tile.w, tile.h);
-          gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      let u_tex = gl.getUniformLocation(sprog_tiles, "tex");
+      let u_texSize = gl.getUniformLocation(sprog_tiles, "texSize");
+      let u_screenSize = gl.getUniformLocation(sprog_tiles, "screenSize");
+      let u_srcRect = gl.getUniformLocation(sprog_tiles, "srcRect");
+      let u_dstRect = gl.getUniformLocation(sprog_tiles, "dstRect");
+
+      gl.uniform1i(u_tex, 0);
+      gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
+      gl.uniform2f(u_screenSize, 320, 180);
+
+      for (const level of ldtk_map.levels) {
+        for (const layer of level.layerInstances) {
+          for (const tile of layer.gridTiles) {
+            gl.uniform4f(u_srcRect,
+              tile.src[0], tile.src[1], layer.__cWid, layer.__cHei);
+            gl.uniform4f(u_dstRect,
+              tile.px[0] + layer.__pxTotalOffsetX, tile.px[1] + layer.__pxTotalOffsetY, layer.__cWid, layer.__cHei);
+            gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+          }
         }
       }
     }
+
+    // --- render shadow map texture to screen ---
+    {
+      /*
+       * custom blend function for color inversion:
+       *
+       *   finalColor = (1 - dstColor) * srcColor + (1 - srcAlpha) * dstColor
+       *
+       * for shadow map texel (1, 1, 1, 1), finalColor => (1 - dstColor)
+       * for shadow map texel (0, 0, 0, 0), finalColor => dstColor
+      **/
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFuncSeparate(
+        gl.ONE_MINUS_DST_COLOR, gl.ONE_MINUS_SRC_ALPHA,
+        gl.ZERO, gl.ONE);
+      gl.useProgram(sprog_pass);
+      let u_tex = gl.getUniformLocation(sprog_pass, "tex");
+      gl.uniform1i(u_tex, 1);
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+
+      // return to default blend function
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    }
+
+    // --- render entities ---
+    {
+      gl.useProgram(sprog_tiles);
+
+      let u_tex = gl.getUniformLocation(sprog_tiles, "tex");
+      let u_texSize = gl.getUniformLocation(sprog_tiles, "texSize");
+      let u_screenSize = gl.getUniformLocation(sprog_tiles, "screenSize");
+      let u_srcRect = gl.getUniformLocation(sprog_tiles, "srcRect");
+      let u_dstRect = gl.getUniformLocation(sprog_tiles, "dstRect");
+
+      gl.uniform1i(u_tex, 0);
+      gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
+      gl.uniform2f(u_screenSize, 320, 180);
+
+      for (const level of ldtk_map.levels) {
+        for (const layer of level.layerInstances) {
+          for (const entity of layer.entityInstances) {
+            const tile = entity.__tile;
+            if (!tile) continue;
+            gl.uniform4f(u_srcRect,
+              tile.x, tile.y, tile.w, tile.h);
+            gl.uniform4f(u_dstRect,
+              entity.__worldX, entity.__worldY, tile.w, tile.h);
+            gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+          }
+        }
+      }
+    }
+
   }
 }
 
