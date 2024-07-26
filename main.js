@@ -441,20 +441,17 @@ function render() {
     for (const level of ldtk_map.levels) {
       for (const layer of level.layerInstances) {
         for (const entity of layer.entityInstances) {
-          const tile = entity.__tile;
-          if (!tile) continue;
-          if (!entity.fieldInstances) continue;
-          if (entity.fieldInstances.length < 1) continue;
-          const entityIid = entity.fieldInstances[0].__value.entityIid;
-          const base = ldtk_map_bases[entityIid];
+          const data = entity_data[entity.__identifier];
+          if (!data) continue;
+          const base = data.getBaseRect();
+          base.x += entity.__worldX;
+          base.y += entity.__worldY;
           const base_center_x = (2 * base.x + base.w) / 2.0;
           const base_center_y = (2 * base.y + base.h) / 2.0;
-          gl.uniform4f(u_srcRect,
-            tile.x, tile.y, tile.w, tile.h);
-          gl.uniform4f(u_dstRect,
-            entity.__worldX, entity.__worldY, tile.w, tile.h);
-          gl.uniform2f(u_origin,
-            base_center_x, base_center_y);
+          const rect = data.tex_rect;
+          gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
+          gl.uniform4f(u_dstRect, entity.__worldX, entity.__worldY, rect.w, rect.h);
+          gl.uniform2f(u_origin, base_center_x, base_center_y);
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         }
       }
