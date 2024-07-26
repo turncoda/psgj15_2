@@ -102,6 +102,20 @@ class Entity {
   }
 }
 
+// TODO
+// parameters: facing, animation, time
+// const animations = {
+//   walk: { down: [frame1, frame2, ... ], right: [ ...
+//   idle: { ...
+// }
+// const frame = {
+//   srcRect: Rect
+//   ssSrcRect: Rect
+//   ssOffsetX: number
+//   ssOffsetY: number
+// }
+
+
 class EntityData {
   constructor(tex_rect, ss_tex_rect, ss_offset_x, ss_offset_y, base_rect, bounding_polygon) {
     // tex_rect
@@ -326,17 +340,23 @@ async function main() {
 
   // --- LOAD SPRITE DATA ---
 
-  const frames_length = spritesheet_json.frames.length;
   for (const tag of spritesheet_json.meta.frameTags) {
-    if (!tag.name[0].match(/[A-Z]/g)) continue;
-    const f = spritesheet_json.frames[tag.from];
-    const frame = f.frame;
-    const ss = spritesheet_json.frames[frames_length / 2 + tag.from];
-    entity_data[tag.name] = new EntityData(
-      new Rect(frame.x, frame.y, frame.w, frame.h),
-      new Rect(ss.frame.x, ss.frame.y, ss.frame.w, ss.frame.h),
-      ss.spriteSourceSize.x - f.spriteSourceSize.x, ss.spriteSourceSize.y - f.spriteSourceSize.y,
-    );
+    if (tag.name.startsWith("a_")) {
+      const id = tag.name.split("_")[1];
+      console.log(id);
+      // TODO
+    } else if (tag.name.startsWith("t_")) {
+    } else {
+      const key = `${tag.from}_Down`;
+      const ss_key = `${tag.from}_Down_ss`;
+      const f = spritesheet_json.frames[key];
+      const ss = spritesheet_json.frames[ss_key];
+      entity_data[tag.name] = new EntityData(
+        new Rect(f.frame.x, f.frame.y, f.frame.w, f.frame.h),
+        new Rect(ss.frame.x, ss.frame.y, ss.frame.w, ss.frame.h),
+        ss.spriteSourceSize.x - f.spriteSourceSize.x, ss.spriteSourceSize.y - f.spriteSourceSize.y,
+      );
+    }
   }
 
   entity_data["Clocktower"].base_rect = new Rect(0, 0, 2, 2);
