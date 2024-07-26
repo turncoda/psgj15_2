@@ -572,7 +572,7 @@ function render() {
     gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
     gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
     const [cx, cy] = getCameraPosition();
-    gl.uniform2f(u_cameraPos, Math.round(cx), Math.round(cy));
+    gl.uniform2f(u_cameraPos, (cx), (cy));
 
     for (const entity of entity_instances) {
       const data = entity_data[entity.identifier];
@@ -607,7 +607,7 @@ function render() {
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       const [cx, cy] = getCameraPosition();
-      gl.uniform2f(u_cameraPos, Math.round(cx), Math.round(cy));
+      gl.uniform2f(u_cameraPos, (cx), (cy));
 
       // subtract entities
       for (const entity of entity_instances) {
@@ -665,7 +665,7 @@ function render() {
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       const [cx, cy] = getCameraPosition();
-      gl.uniform2f(u_cameraPos, Math.round(cx), Math.round(cy));
+      gl.uniform2f(u_cameraPos, (cx), (cy));
 
       for (const level of ldtk_map.levels) {
         for (const layer of level.layerInstances) {
@@ -695,7 +695,7 @@ function render() {
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       const [cx, cy] = getCameraPosition();
-      gl.uniform2f(u_cameraPos, Math.round(cx), Math.round(cy));
+      gl.uniform2f(u_cameraPos, (cx), (cy));
 
       for (const entity of entity_instances) {
         const data = entity_data[entity.identifier];
@@ -748,7 +748,7 @@ function render() {
 
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       const [cx, cy] = getCameraPosition();
-      gl.uniform2f(u_cameraPos, Math.round(cx), Math.round(cy));
+      gl.uniform2f(u_cameraPos, (cx), (cy));
       gl.uniform2f(u_scale, 1, 1);
 
       for (const entity of entity_instances) {
