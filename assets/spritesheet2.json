@@ -461,8 +461,8 @@
    { "name": "Well", "from": 2, "to": 2, "direction": "forward", "color": "#000000ff" },
    { "name": "t_Ground", "from": 3, "to": 3, "direction": "forward", "color": "#000000ff" },
    { "name": "DebugBlock", "from": 4, "to": 4, "direction": "forward", "color": "#000000ff" },
-   { "name": "a_Player_Walk", "from": 5, "to": 6, "direction": "forward", "color": "#000000ff" },
-   { "name": "a_Player_Idle", "from": 5, "to": 5, "direction": "forward", "color": "#000000ff" },
+   { "name": "Player_Walk", "from": 5, "to": 6, "direction": "forward", "color": "#000000ff" },
+   { "name": "Player_Idle", "from": 5, "to": 5, "direction": "forward", "color": "#000000ff" },
    { "name": "Player", "from": 5, "to": 5, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [

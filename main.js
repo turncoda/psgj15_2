@@ -126,6 +126,19 @@ class Frame {
     this.ssOffsetX = 0;
     this.ssOffsetY = 0;
   }
+
+  static fromJSON(json, ssJSON) {
+    const frame = new Frame(
+      json.frame.x, json.frame.y, json.frame.w, json.frame.h, json.duration);
+    frame.ssSrcRect = new Rect(
+      ssJSON.frame.x,
+      ssJSON.frame.y,
+      ssJSON.frame.w,
+      ssJSON.frame.h);
+    frame.ssOffsetX = ssJSON.spriteSourceSize.x - json.spriteSourceSize.x;
+    frame.ssOffsetY = ssJSON.spriteSourceSize.y - json.spriteSourceSize.y;
+    return frame;
+  }
 }
 
 // invariant: always has at least one frame
@@ -141,12 +154,11 @@ class Animation {
 }
 
 class EntityData {
-  constructor(frame) {
-    const default_frame = frame ?? new Frame(0, 0, 0, 0, 0);
+  constructor() {
     // animations
     // - object. primary key: animation name, secondary key: facing
     // - should always have "Static" animation with "Down" facing
-    this.animations = { "Static": { "Down": new Animation([default_frame]) }};
+    this.animations = {};
     // base_rect
     // - relative to BOTTOM LEFT corner of the sprite AND base_rect
     // - coordinates are tiles, not pixels
@@ -159,6 +171,15 @@ class EntityData {
     // - (0, 0) is BOTTOM LEFT corner of the sprite
     // - will flip Y when transforming to world position
     this.bounding_polygon = [];
+  }
+
+  addAnimation(name, facing, animation) {
+    if (!(name in this.animations)) this.animations[name] = {};
+    this.animations[name][facing] = animation;
+  }
+
+  setStaticFrame(frame) {
+    this.addAnimation("Static", "Down", new Animation([frame]));
   }
 
   getStaticFrame() {
@@ -368,28 +389,27 @@ async function main() {
   // --- LOAD SPRITE DATA ---
 
   for (const tag of spritesheet_json.meta.frameTags) {
-    if (tag.name.startsWith("a_")) {
-      const [_, id, animName] = tag.name.split("_");
-      if (!(id in entity_data)) {
-        const data = new EntityData();
-        entity_data[id] = data;
+    if (tag.name.startsWith("t_")) continue;
+    let [id, animName] = tag.name.split("_");
+    if (!animName) animName = "Static";
+    if (!(id in entity_data)) {
+      const data = new EntityData();
+      entity_data[id] = data;
+    }
+    for (const facing of ["Down", "Right", "Up", "Left"]) {
+      const frames = [];
+      for (let i = tag.from; i <= tag.to; i++) {
+        const key = `${i}_${facing}`;
+        const ssKey = `${i}_${facing}_ss`;
+        const json = spritesheet_json.frames[key];
+        const ssJSON = spritesheet_json.frames[ssKey];
+        const frame = Frame.fromJSON(json, ssJSON);
+        frames.push(frame);
       }
-      // TODO
-    } else if (tag.name.startsWith("t_")) {
-      // TODO
-    } else {
-      const key = `${tag.from}_Down`;
-      const ss_key = `${tag.from}_Down_ss`;
-      const f = spritesheet_json.frames[key];
-      const ss = spritesheet_json.frames[ss_key];
-      const frame = new Frame(f.frame.x, f.frame.y, f.frame.w, f.frame.h, 0);
-      frame.ssSrcRect = new Rect(ss.frame.x, ss.frame.y, ss.frame.w, ss.frame.h);
-      frame.ssOffsetX = ss.spriteSourceSize.x - f.spriteSourceSize.x;
-      frame.ssOffsetY = ss.spriteSourceSize.y - f.spriteSourceSize.y;
-      const data = new EntityData(frame);
-      entity_data[tag.name] = data;
+      entity_data[id].addAnimation(animName, facing, new Animation(frames));
     }
   }
+  console.log(entity_data);
 
   entity_data["Clocktower"].base_rect = new Rect(0, 0, 2, 2);
   entity_data["Clocktower"].bounding_polygon = [

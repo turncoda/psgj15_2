@@ -10,9 +10,13 @@
 - do level design
 - add variety of floor tiles
 
+- quantize camera to area grid
+- quantize character to pixel grid
 - render intersection of player silhouette and self-shadow to shadow map first
 - explore quantizing position to animation framerate
 - add light sensor to ui
+- bonus: become vampire cutscene
+- bonus: player has no shadow
 
 - add fullscreen mode
 - controller support
