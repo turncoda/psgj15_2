@@ -45,6 +45,7 @@ let is_pressed_right = false;
 let is_pressed_dash = false;
 let player_is_dashing = false;
 let is_debug_vis = false;
+let is_paused = false;
 
 class Rect {
   constructor(x, y, w, h) {
@@ -91,6 +92,8 @@ class Entity {
     this._state = "Static";
     this.facing = "Down";
     this.animStartTime = 0;
+    this._counter = 0;
+    this._frameIndex = 0;
   }
 
   get x() {
@@ -112,15 +115,18 @@ class Entity {
   get state() {
     return this._state;
   }
-  setState(s, t) {
+  set state(s) {
     if (this._state !== s) {
-      this.animStartTime = t
+      this._counter = 0;
+      this._state = s;
     }
-    this._state = s;
+  }
+  advance(dt) {
+    this._counter += dt;
   }
 
-  getFrame(t) {
-    return this.data.animations[this.state][this.facing].getFrame(t - this.animStartTime);
+  getFrame() {
+    return this.data.animations[this.state][this.facing].getFrame(this._counter);
   }
 }
 
@@ -267,20 +273,12 @@ class EntityData {
 
 window.addEventListener("load", main);
 
-/**
- * keycodes:
- * w 87
- * a 65
- * s 83
- * d 68
- * space 32
- * e 69
- * q 81
- */
-
 document.onkeydown = function (e) {
-  //console.log(e.keyCode);
+  console.log(e.keyCode);
   switch (e.keyCode) {
+    case 27: // esc
+    is_paused = !is_paused;
+    break;
     case 38: // up arrow
     case 87: // w
     is_pressed_up = true;
@@ -300,6 +298,7 @@ document.onkeydown = function (e) {
     case 32: // spacebar
     if (e.repeat) break;
     if (is_pressed_dash) break;
+    if (is_paused) break;
     if (!player_can_dash) break;
     is_pressed_dash = true;
     player_can_dash = false;
@@ -651,13 +650,19 @@ function step(timestamp) {
   time_since_last_draw += dt;
   if (time_since_last_draw >= TARGET_FRAME_DURATION) {
     time_since_last_draw %= TARGET_FRAME_DURATION;
-    update(timestamp, dt);
-    render(timestamp);
+    update(dt);
+    render();
   }
   window.requestAnimationFrame(step);
 }
 
-function update(timestamp, dt) {
+function update(dt) {
+  if (is_paused) {
+    return;
+  }
+  for (const entity of entity_instances) {
+    entity.advance(dt);
+  }
   player_dash_counter = Math.max(0, player_dash_counter - dt);
   if (player_dash_counter === 0) {
     player_is_dashing = false;
@@ -697,12 +702,12 @@ function update(timestamp, dt) {
   }
 
   if (player_is_dashing) {
-    player.setState("Dash", timestamp);
+    player.state = "Dash";
   } else {
     if (dx !== 0 || dy !== 0) {
-      player.setState("Walk", timestamp);
+      player.state = "Walk";
     } else {
-      player.setState("Idle", timestamp);
+      player.state = "Idle";
     }
   }
 
@@ -766,7 +771,7 @@ function update(timestamp, dt) {
   }
 }
 
-function render(timestamp) {
+function render() {
   // --- build shadow map ---
   {
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb);
@@ -796,7 +801,7 @@ function render(timestamp) {
       base.y += entity.y;
       const base_center_x = (2 * base.x + base.w) / 2.0;
       const base_center_y = (2 * base.y + base.h) / 2.0;
-      const rect = entity.getFrame(timestamp).srcRect;
+      const rect = entity.getFrame().srcRect;
       gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
       gl.uniform4f(u_dstRect, entity.x, entity.y, rect.w, rect.h);
       gl.uniform2f(u_origin, base_center_x, base_center_y);
@@ -903,7 +908,7 @@ function render(timestamp) {
       gl.uniform2f(u_cameraPos, (cx), (cy));
 
       for (const entity of entity_instances) {
-        const rect = entity.getFrame(timestamp).srcRect;
+        const rect = entity.getFrame().srcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
         gl.uniform4f(u_dstRect, entity.x, entity.y, rect.w, rect.h);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
