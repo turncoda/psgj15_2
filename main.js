@@ -31,14 +31,16 @@ let player_sprite_height = 32;
 
 window.addEventListener("load", main);
 
-// keycodes:
-// w 87
-// a 65
-// s 83
-// d 68
-// space 32
-// e 69
-// q 81
+/**
+ * keycodes:
+ * w 87
+ * a 65
+ * s 83
+ * d 68
+ * space 32
+ * e 69
+ * q 81
+ */
 
 document.onkeydown = function (e) {
   switch (e.keyCode) {
@@ -370,14 +372,14 @@ function render() {
 
     // --- render shadow map texture to screen ---
     {
-      /*
+      /**
        * custom blend function for color inversion:
        *
        *   finalColor = (1 - dstColor) * srcColor + (1 - srcAlpha) * dstColor
        *
        * for shadow map texel (1, 1, 1, 1), finalColor => (1 - dstColor)
        * for shadow map texel (0, 0, 0, 0), finalColor => dstColor
-      **/
+       */
       gl.blendEquation(gl.FUNC_ADD);
       gl.blendFuncSeparate(
         gl.ONE_MINUS_DST_COLOR, gl.ONE_MINUS_SRC_ALPHA,

@@ -1,8 +1,10 @@
-- implement camera
-- camera follow player (for now)
 - player animation while walking
 - explore quantizing position to animation framerate
+
 - render order: add height data for all entities
+
+- add convex polygon collision data for all entities
+- derive shadow collision from entity collision data
+
 - add fullscreen mode
 - controller support
-
