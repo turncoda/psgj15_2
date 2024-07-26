@@ -1,6 +1,7 @@
-- split out render function and set up animation
-- static camera on grid
-- handle keyboard input
+- implement camera
+- camera follow player (for now)
+- player animation while walking
+- explore quantizing position to animation framerate
 - add fullscreen mode
 - controller support
 

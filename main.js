@@ -1,6 +1,8 @@
 "use strict";
 
 const ONE_OVER_SQRT_OF_TWO = 1.0 / Math.sqrt(2.0);
+const TARGET_FRAME_RATE = 60.0; // frames per second
+const TARGET_FRAME_DURATION = 1000.0 / TARGET_FRAME_RATE; // milliseconds
 
 let gl;
 let ldtk_map;
@@ -9,6 +11,9 @@ let img_spritesheet;
 let fb;
 let shader_programs = {};
 let spritesheet_json;
+
+let prev_timestamp = 0;
+let time_since_last_draw = 0;
 
 let player_x, player_y;
 let player_sprite_x, player_sprite_y;
@@ -242,9 +247,14 @@ function createProgram(gl, vs_source, fs_source) {
 }
 
 function step(timestamp) {
-  // TODO cap framerate
-  update();
-  render();
+  const dt = timestamp - prev_timestamp;
+  prev_timestamp = timestamp;
+  time_since_last_draw += dt;
+  if (time_since_last_draw >= TARGET_FRAME_DURATION) {
+    time_since_last_draw %= TARGET_FRAME_DURATION;
+    update();
+    render();
+  }
   window.requestAnimationFrame(step);
 }
 
@@ -262,10 +272,6 @@ function update() {
   }
   if (is_pressed_down) {
     dy += player_speed_y;
-  }
-  if (dx != 0 && dy != 0) {
-    dx *= ONE_OVER_SQRT_OF_TWO;
-    dy *= ONE_OVER_SQRT_OF_TWO;
   }
 
   player_x += dx;
