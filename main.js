@@ -14,7 +14,6 @@ let buffer_debug;
 let buffer_debug_length;
 
 let ldtk_map;
-let ldtk_map_bases = {};
 let img_spritesheet;
 let fb;
 let shader_programs = {};
@@ -50,14 +49,17 @@ class Rect {
   }
 }
 
-class EntityInstance {
-  constructor(identifier, x, y) {
+class Entity {
+  constructor(identifier, x, y, data) {
     this.identifier = identifier;
     this.x = x;
     this.y = y;
-    const data = entity_data[this.identifier];
-    if (!data) return;
+    this.data = data;
     this.shadowPolygon = polygonFromArray(x, y, data.getShadowBoundingPolygon());
+    this.base_rect = data.getBaseRect(); // immutable
+    this.collider = new SAT.Box(
+      new SAT.Vector(x + this.base_rect.x, y + this.base_rect.y),
+      this.base_rect.w, this.base_rect.h);
   }
 }
 
@@ -424,29 +426,18 @@ async function main() {
   for (const level of ldtk_map.levels) {
     for (const layer of level.layerInstances) {
       for (const entity of layer.entityInstances) {
-        const inst = new EntityInstance(
+        const inst = new Entity(
           entity.__identifier,
           entity.__worldX,
-          entity.__worldY);
+          entity.__worldY,
+          entity_data[entity.__identifier]);
         entity_instances.push(inst);
-        if (entity.__identifier === "Base") {
-          ldtk_map_bases[entity.iid] = { x: entity.px[0], y: entity.px[1], w: entity.width, h: entity.height };
-        }
         if (entity.__identifier === "Player") {
           player = inst;
         }
       }
     }
   }
-  console.log(entity_instances);
-
-  for (const level of ldtk_map.levels) {
-    for (const layer of level.layerInstances) {
-      for (const entity of layer.entityInstances) {
-      }
-    }
-  }
-
 
   // --- SET UP VERTEX ARRAYS ---
 
@@ -528,6 +519,8 @@ function update() {
   if (is_pressed_down) {
     dy += player_velocity;
   }
+
+  const box = Object.assign({}, player.collider);
 
   player.x += dx;
   player.y += dy;
@@ -776,13 +769,8 @@ function render() {
       gl.uniform3f(u_debugColor, 0, 1, 1);
 
       for (const entity of entity_instances) {
-        const data = entity_data[entity.identifier];
-        if (!data) continue;
-        const base_rect = data.getBaseRect();
-        gl.uniform2f(u_scale, base_rect.w, base_rect.h);
-        gl.uniform2f(u_worldPos,
-          entity.x + base_rect.x,
-          entity.y + base_rect.y);
+        gl.uniform2f(u_scale, entity.collider.w, entity.collider.h);
+        gl.uniform2f(u_worldPos, entity.collider.pos.x, entity.collider.pos.y);
         gl.drawArrays(gl.LINE_STRIP, 0, buffer_debug_length);
       }
     }
