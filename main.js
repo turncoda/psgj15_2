@@ -47,19 +47,58 @@ class Rect {
     this.w = w;
     this.h = h;
   }
+  copy() {
+    return new Rect(this.x, this.y, this.w, this.h);
+  }
+  test(o) {
+    return !(
+      this.x > o.x + o.w ||
+      this.y > o.y + o.h ||
+      this.x + this.w < o.x ||
+      this.y + this.h < o.y
+    );
+  }
+  xDistTo(o, epsilon) {
+    let a = this;
+    let b = o;
+    let flip = 1;
+    if (b.x < a.x) [a, b, flip] = [b, a, -1];
+    return flip * (b.x - (a.x + a.w) - epsilon);
+  }
+  yDistTo(o, epsilon) {
+    let a = this;
+    let b = o;
+    let flip = 1;
+    if (b.y < a.y) [a, b, flip] = [b, a, -1];
+    return flip * (b.y - (a.y + a.h) - epsilon);
+  }
 }
 
 class Entity {
   constructor(identifier, x, y, data) {
     this.identifier = identifier;
-    this.x = x;
-    this.y = y;
+    this._x = x;
+    this._y = y;
     this.data = data;
     this.shadowPolygon = polygonFromArray(x, y, data.getShadowBoundingPolygon());
-    this.base_rect = data.getBaseRect(); // immutable
-    this.collider = new SAT.Box(
-      new SAT.Vector(x + this.base_rect.x, y + this.base_rect.y),
-      this.base_rect.w, this.base_rect.h);
+    this.rect = new Rect(x + data.lsBox.x, y + data.lsBox.y, data.lsBox.w, data.lsBox.h);
+  }
+
+  get x() {
+    return this._x;
+  }
+  set x(value) {
+    this._x = value;
+    this.rect.x = value + this.data.lsBox.x;
+    this.shadowPolygon.pos.x = value;
+  }
+  get y() {
+    return this._y;
+  }
+  set y(value) {
+    this._y = value;
+    this.rect.y = value + this.data.lsBox.y;
+    this.shadowPolygon.pos.y = value;
   }
 }
 
@@ -100,17 +139,20 @@ class EntityData {
     return result;
   }
 
-  getBaseRect() {
+  get lsBox() {
+    if (this._lsBox) return this._lsBox;
     const x = TILE_SIZE * this.base_rect.x;
     const y = this.tex_rect.h - TILE_SIZE * (this.base_rect.y + this.base_rect.h);
     const w = TILE_SIZE * this.base_rect.w;
     const h = TILE_SIZE * this.base_rect.h;
-    return new Rect(x, y, w, h);
+    this._lsBox = new Rect(x, y, w, h);
+    Object.freeze(this._lsBox);
+    return this._lsBox;
   }
 
   getShadowBoundingPolygon() {
     const vertices = this.getBoundingPolygon();
-    const base_rect = this.getBaseRect();
+    const base_rect = this.lsBox;
     const base_center_x = base_rect.x + 0.5 * base_rect.w;
     const base_center_y = base_rect.y + 0.5 * base_rect.h;
     const shadow_vertices = Array(vertices.length);
@@ -402,7 +444,7 @@ async function main() {
     gl.bindBuffer(gl.ARRAY_BUFFER, data.bounding_polygon_buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
-    const base_rect = data.getBaseRect();
+    const base_rect = data.lsBox;
     const base_center_x = base_rect.x + 0.5 * base_rect.w;
     const base_center_y = base_rect.y + 0.5 * base_rect.h;
 
@@ -520,10 +562,25 @@ function update() {
     dy += player_velocity;
   }
 
-  const box = Object.assign({}, player.collider);
+  const rectCopy = player.rect.copy();
+  const oldPlayerX = player.x;
+  const oldPlayerY = player.y;
 
   player.x += dx;
+  for (const entity of entity_instances) {
+    if (entity.identifier === "Player") continue;
+    if (player.rect.test(entity.rect)) {
+      player.x = oldPlayerX + rectCopy.xDistTo(entity.rect, 1e-12);
+    }
+  }
+
   player.y += dy;
+  for (const entity of entity_instances) {
+    if (entity.identifier === "Player") continue;
+    if (player.rect.test(entity.rect)) {
+      player.y = oldPlayerY + rectCopy.yDistTo(entity.rect, 1e-12);
+    }
+  }
 
   // --- calculate shadow level ---
   {
@@ -570,7 +627,7 @@ function render() {
     for (const entity of entity_instances) {
       const data = entity_data[entity.identifier];
       if (!data) continue;
-      const base = data.getBaseRect();
+      const base = Object.assign({}, data.lsBox);
       base.x += entity.x;
       base.y += entity.y;
       const base_center_x = (2 * base.x + base.w) / 2.0;
@@ -759,7 +816,9 @@ function render() {
         gl.uniform3f(u_debugColor, 0, 1, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, data.shadow_bounding_polygon_buffer);
         gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
-        gl.uniform2f(u_worldPos, entity.x, entity.y);
+        gl.uniform2f(u_worldPos,
+          entity.shadowPolygon.pos.x,
+          entity.shadowPolygon.pos.y);
         gl.drawArrays(gl.LINE_LOOP, 0, data.num_verts);
       }
 
@@ -769,8 +828,8 @@ function render() {
       gl.uniform3f(u_debugColor, 0, 1, 1);
 
       for (const entity of entity_instances) {
-        gl.uniform2f(u_scale, entity.collider.w, entity.collider.h);
-        gl.uniform2f(u_worldPos, entity.collider.pos.x, entity.collider.pos.y);
+        gl.uniform2f(u_scale, entity.rect.w, entity.rect.h);
+        gl.uniform2f(u_worldPos, entity.rect.x, entity.rect.y);
         gl.drawArrays(gl.LINE_STRIP, 0, buffer_debug_length);
       }
     }
@@ -829,4 +888,3 @@ function polygonFromArray(x, y, arr) {
 function lerp(a, b, pct) {
   return a * (1 - pct) + b * pct;
 }
-
