@@ -28,7 +28,10 @@ let player;
 let player_sprite_x, player_sprite_y;
 const PLAYER_LOW_SPEED = 0.5;
 const PLAYER_HIGH_SPEED = 1.5;
-let player_velocity;
+let player_velocity = 0;
+let player_velocity_target = 0;
+const PLAYER_VELOCITY_MAX_INCREMENT = .1;
+const PLAYER_VELOCITY_MAX_DECREMENT = .05;
 let player_light_sensors;
 let player_shadow_level;
 let is_pressed_up = false;
@@ -540,10 +543,18 @@ function step(timestamp) {
 }
 
 function update() {
-  player_velocity = lerp(
+  player_velocity_target = lerp(
     PLAYER_LOW_SPEED,
     PLAYER_HIGH_SPEED,
     2 * player_shadow_level / player_light_sensors.length);
+
+  if (player_velocity < player_velocity_target) {
+    const diff =  player_velocity_target - player_velocity;
+    player_velocity += Math.min(diff, PLAYER_VELOCITY_MAX_INCREMENT);
+  } else {
+    const diff = player_velocity - player_velocity_target;
+    player_velocity -= Math.min(diff, PLAYER_VELOCITY_MAX_DECREMENT);
+  }
 
   let dx = 0;
   let dy = 0;
