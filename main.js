@@ -5,6 +5,7 @@ const TARGET_FRAME_RATE = 60.0; // frames per second
 const TARGET_FRAME_DURATION = 1000.0 / TARGET_FRAME_RATE; // milliseconds
 
 const CHARSET_TILE_SIZE = 16;
+// TODO try different tile size for charset
 const CHARSET_TILE_WIDTH = 16;
 const CHARSET_TILE_HEIGHT = 16;
 const TILE_SIZE = 16;
@@ -24,6 +25,8 @@ let shader_programs = {};
 let spritesheet_json;
 const entity_data = {};
 const entity_instances = [];
+const text_boxes = [];
+let pause_text_box;
 
 let prev_timestamp = 0;
 let time_since_last_draw = 0;
@@ -53,6 +56,7 @@ let is_paused = false;
 
 class TextBox {
   constructor(text, x, y, is_x_centered, max_chars_per_line) {
+    this.visible = true;
     this.text = text;
     this.x = Math.round(x);
     this.y = Math.round(y);
@@ -65,9 +69,15 @@ class TextBox {
   splitTextIntoLines() {
     if (this._cached_lines) return this._cached_lines;
     this._cached_lines = [];
+    let line = "";
     for (const word of this.text.split(" ")) {
-      this._cached_lines.push(word);
+      if (line.length + 1 + word.length > this.max_chars_per_line) {
+        if (line.length > 0) this._cached_lines.push(line);
+        line = "";
+      }
+      line = line.length === 0 ? word : [line, word].join(" ");
     }
+    this._cached_lines.push(line);
     return this._cached_lines;
   }
 
@@ -532,6 +542,11 @@ async function main() {
   let fs_debug = document.querySelector("#fs_debug").innerHTML.trim();
   shader_programs.debug = createProgram(gl, vs_debug, fs_debug);
 
+  // --- ADD TEXT BOXES ---
+  pause_text_box = new TextBox("- pause -", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, true);
+  pause_text_box.visible = false;
+  text_boxes.push(pause_text_box);
+
   // --- LOAD SPRITE DATA ---
 
   for (const tag of spritesheet_json.meta.frameTags) {
@@ -746,6 +761,7 @@ function step(timestamp) {
 }
 
 function update(dt) {
+  pause_text_box.visible = is_paused;
   if (is_paused) {
     return;
   }
@@ -1029,7 +1045,7 @@ function render() {
     }
 
     // --- render text ---
-    if (is_paused) {
+    {
       gl.useProgram(shader_programs.tiles);
 
       let u_tex = gl.getUniformLocation(shader_programs.tiles, "tex");
@@ -1044,17 +1060,19 @@ function render() {
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       gl.uniform2f(u_cameraPos, 0, 0);
 
-      let pauseTextBox = new TextBox("- pause -", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, true);
-      {
-        const r = pauseTextBox.bgRect();
-        gl.uniform4f(u_srcRect, 0, 0, CHARSET_TILE_WIDTH, CHARSET_TILE_HEIGHT);
-        gl.uniform4f(u_dstRect, r.x, r.y, r.w, r.h);
-        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-      }
-      for (const [s, d] of pauseTextBox.charRects()) {
-        gl.uniform4f(u_srcRect, s.x, s.y, s.w, s.h);
-        gl.uniform4f(u_dstRect, d.x, d.y, d.w, d.h);
-        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      for (const textBox of text_boxes) {
+        if (!textBox.visible) continue;
+        {
+          const r = textBox.bgRect();
+          gl.uniform4f(u_srcRect, 0, 0, CHARSET_TILE_WIDTH, CHARSET_TILE_HEIGHT);
+          gl.uniform4f(u_dstRect, r.x, r.y, r.w, r.h);
+          gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+        }
+        for (const [s, d] of textBox.charRects()) {
+          gl.uniform4f(u_srcRect, s.x, s.y, s.w, s.h);
+          gl.uniform4f(u_dstRect, d.x, d.y, d.w, d.h);
+          gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+        }
       }
 
     }
