@@ -4,6 +4,9 @@ const ONE_OVER_SQRT_OF_TWO = 1.0 / Math.sqrt(2.0);
 const TARGET_FRAME_RATE = 60.0; // frames per second
 const TARGET_FRAME_DURATION = 1000.0 / TARGET_FRAME_RATE; // milliseconds
 
+const CHARSET_TILE_SIZE = 16;
+const CHARSET_TILE_WIDTH = 16;
+const CHARSET_TILE_HEIGHT = 16;
 const TILE_SIZE = 16;
 const SCREEN_WIDTH = 320;
 const SCREEN_HEIGHT = 180;
@@ -15,6 +18,7 @@ let buffer_debug_length;
 
 let ldtk_map;
 let img_spritesheet;
+let charset;
 let fb;
 let shader_programs = {};
 let spritesheet_json;
@@ -46,6 +50,67 @@ let is_pressed_dash = false;
 let player_is_dashing = false;
 let is_debug_vis = false;
 let is_paused = false;
+
+class TextBox {
+  constructor(text, x, y, is_x_centered, max_chars_per_line) {
+    this.text = text;
+    this.x = Math.round(x);
+    this.y = Math.round(y);
+    // TODO use enum
+    this.is_x_centered = is_x_centered ?? false;
+    this.max_chars_per_line = max_chars_per_line ??
+      SCREEN_WIDTH / CHARSET_TILE_WIDTH;
+  }
+
+  splitTextIntoLines() {
+    if (this._cached_lines) return this._cached_lines;
+    this._cached_lines = [];
+    for (const word of this.text.split(" ")) {
+      this._cached_lines.push(word);
+    }
+    return this._cached_lines;
+  }
+
+  bgRect() {
+    const lines = this.splitTextIntoLines();
+    const height = CHARSET_TILE_HEIGHT * lines.length;
+    const width = Math.min(this.max_chars_per_line, this.text.length)
+      * CHARSET_TILE_WIDTH;
+    const x = this.is_x_centered ? Math.round(this.x - width / 2) : this.x;
+    return new Rect(x, this.y, width, height);
+  }
+
+  // returns an array of src rects and and array of dst rects
+  charRects() {
+    const lines = this.splitTextIntoLines();
+    const result = [];
+    for (let y = 0; y < lines.length; y++) {
+      const line = lines[y];
+      for (let x = 0; x < line.length; x++) {
+        const c = line.charCodeAt(x);
+        const sx = c % 16 * CHARSET_TILE_WIDTH;
+        const sy = Math.trunc(c / 16) * CHARSET_TILE_HEIGHT;
+        const s = new Rect(
+          sx,
+          sy,
+          CHARSET_TILE_WIDTH,
+          CHARSET_TILE_HEIGHT,
+        );
+        const width = Math.min(this.max_chars_per_line, this.text.length)
+          * CHARSET_TILE_WIDTH;
+        const ox = this.is_x_centered ? Math.round(this.x - width / 2) : this.x;
+        const oy = this.y;
+        const d = new Rect(
+          ox + x * CHARSET_TILE_WIDTH,
+          oy + y * CHARSET_TILE_HEIGHT,
+          CHARSET_TILE_WIDTH,
+          CHARSET_TILE_HEIGHT);
+        result.push([s, d]);
+      }
+    }
+    return result;
+  }
+}
 
 class Rect {
   constructor(x, y, w, h) {
@@ -274,7 +339,7 @@ class EntityData {
 window.addEventListener("load", main);
 
 document.onkeydown = function (e) {
-  console.log(e.keyCode);
+  //console.log(e.keyCode);
   switch (e.keyCode) {
     case 27: // esc
     is_paused = !is_paused;
@@ -358,6 +423,14 @@ async function main() {
     .then(response => response.json())
   );
 
+  charset = new Image();
+  charset.src = "assets/charset.png";
+  promises.push(new Promise(resolve => {
+    charset.onload = function() {
+      resolve();
+    };
+  }));
+
   let assets = await Promise.all(promises);
 
   ldtk_map = assets[1];
@@ -374,18 +447,34 @@ async function main() {
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-  let texture = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-  gl.texImage2D(gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    img_spritesheet);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  {
+    let texture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      img_spritesheet);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  }
+  {
+    let texture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      charset);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  }
 
   let tex_shadow_map = gl.createTexture();
   gl.activeTexture(gl.TEXTURE1);
@@ -939,6 +1028,36 @@ function render() {
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     }
 
+    // --- render text ---
+    if (is_paused) {
+      gl.useProgram(shader_programs.tiles);
+
+      let u_tex = gl.getUniformLocation(shader_programs.tiles, "tex");
+      let u_texSize = gl.getUniformLocation(shader_programs.tiles, "texSize");
+      let u_screenSize = gl.getUniformLocation(shader_programs.tiles, "screenSize");
+      let u_srcRect = gl.getUniformLocation(shader_programs.tiles, "srcRect");
+      let u_dstRect = gl.getUniformLocation(shader_programs.tiles, "dstRect");
+      let u_cameraPos = gl.getUniformLocation(shader_programs.tiles, "cameraPos");
+
+      gl.uniform1i(u_tex, 2);
+      gl.uniform2f(u_texSize, charset.width, charset.height);
+      gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
+      gl.uniform2f(u_cameraPos, 0, 0);
+
+      let pauseTextBox = new TextBox("- pause -", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, true);
+      {
+        const r = pauseTextBox.bgRect();
+        gl.uniform4f(u_srcRect, 0, 0, CHARSET_TILE_WIDTH, CHARSET_TILE_HEIGHT);
+        gl.uniform4f(u_dstRect, r.x, r.y, r.w, r.h);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      }
+      for (const [s, d] of pauseTextBox.charRects()) {
+        gl.uniform4f(u_srcRect, s.x, s.y, s.w, s.h);
+        gl.uniform4f(u_dstRect, d.x, d.y, d.w, d.h);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      }
+
+    }
 
     // --- render debug collision ---
     if (is_debug_vis) {
