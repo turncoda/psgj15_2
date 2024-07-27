@@ -5,12 +5,23 @@ const TARGET_FRAME_RATE = 60.0; // frames per second
 const TARGET_FRAME_DURATION = 1000.0 / TARGET_FRAME_RATE; // milliseconds
 
 const CHARSET_TILE_SIZE = 16;
-// TODO try different tile size for charset
-const CHARSET_TILE_WIDTH = 16;
+const CHARSET_TILE_WIDTH = 10;
 const CHARSET_TILE_HEIGHT = 16;
 const TILE_SIZE = 16;
 const SCREEN_WIDTH = 320;
 const SCREEN_HEIGHT = 180;
+
+const VerticalAlignment = Object.freeze({
+  TOP: Symbol("top"),
+  CENTER: Symbol("center"),
+  BOTTOM: Symbol("bottom"),
+});
+
+const HorizontalAlignment = Object.freeze({
+  LEFT: Symbol("left"),
+  CENTER: Symbol("center"),
+  RIGHT: Symbol("right"),
+});
 
 let gl;
 let buffer_unit_rect;
@@ -27,6 +38,7 @@ const entity_data = {};
 const entity_instances = [];
 const text_boxes = [];
 let pause_text_box;
+let interact_text_box;
 
 let prev_timestamp = 0;
 let time_since_last_draw = 0;
@@ -45,25 +57,50 @@ let player_shadow_level;
 let player_dash_counter = 0;
 let player_can_dash = false;
 const PLAYER_DASH_MAX_DURATION = 500;
+let targeted_entity;
+const func_queue = [];
 let is_pressed_up = false;
 let is_pressed_left = false;
 let is_pressed_down = false;
 let is_pressed_right = false;
 let is_pressed_dash = false;
+let is_pressed_interact = false;
+let try_interact = false;
 let player_is_dashing = false;
 let is_debug_vis = false;
 let is_paused = false;
+let is_frozen = false;
+
+function hideText() {
+  interact_text_box.visible = false;
+}
+function makeFuncShowText(text) {
+  return () => {
+    interact_text_box.text = text;
+    interact_text_box.visible = true;
+  };
+}
 
 class TextBox {
-  constructor(text, x, y, is_x_centered, max_chars_per_line) {
+  constructor(text, x, y, max_chars_per_line, horizontal_alignment, vertical_alignment) {
     this.visible = true;
-    this.text = text;
+    this._text = text;
     this.x = Math.round(x);
     this.y = Math.round(y);
     // TODO use enum
-    this.is_x_centered = is_x_centered ?? false;
+    this.horizontal_alignment = horizontal_alignment;
+    this.vertical_alignment = vertical_alignment;
     this.max_chars_per_line = max_chars_per_line ??
       SCREEN_WIDTH / CHARSET_TILE_WIDTH;
+  }
+
+  get text() {
+    return this._text;
+  }
+
+  set text(t) {
+    this._text = t;
+    this._cached_lines = undefined;
   }
 
   splitTextIntoLines() {
@@ -81,13 +118,54 @@ class TextBox {
     return this._cached_lines;
   }
 
+  width() {
+    return this.max_chars_per_line * CHARSET_TILE_WIDTH;
+  }
+
+  leftX() {
+    const width = this.width();
+    let x;
+    switch (this.horizontal_alignment) {
+      default:
+      case HorizontalAlignment.LEFT:
+      x = this.x;
+      break;
+      case HorizontalAlignment.CENTER:
+      x = this.x - width / 2;
+      break;
+      case HorizontalAlignment.RIGHT:
+      x = this.x - width;
+      break;
+    }
+    return x;
+  }
+
+  topY() {
+    const lines = this.splitTextIntoLines();
+    const height = CHARSET_TILE_HEIGHT * lines.length;
+    let y;
+    switch (this.vertical_alignment) {
+      default:
+      case VerticalAlignment.TOP:
+      y = this.y;
+      break;
+      case VerticalAlignment.CENTER:
+      y = this.y - height / 2;
+      break;
+      case VerticalAlignment.BOTTOM:
+      y = this.y - height;
+      break;
+    }
+    return y;
+  }
+
   bgRect() {
     const lines = this.splitTextIntoLines();
     const height = CHARSET_TILE_HEIGHT * lines.length;
-    const width = Math.min(this.max_chars_per_line, this.text.length)
-      * CHARSET_TILE_WIDTH;
-    const x = this.is_x_centered ? Math.round(this.x - width / 2) : this.x;
-    return new Rect(x, this.y, width, height);
+    const width = this.width();
+    const x = this.leftX();
+    const y = this.topY();
+    return new Rect(x, y, width, height);
   }
 
   // returns an array of src rects and and array of dst rects
@@ -106,10 +184,9 @@ class TextBox {
           CHARSET_TILE_WIDTH,
           CHARSET_TILE_HEIGHT,
         );
-        const width = Math.min(this.max_chars_per_line, this.text.length)
-          * CHARSET_TILE_WIDTH;
-        const ox = this.is_x_centered ? Math.round(this.x - width / 2) : this.x;
-        const oy = this.y;
+        const width = this.width();
+        const ox = this.leftX();
+        const oy = this.topY();
         const d = new Rect(
           ox + x * CHARSET_TILE_WIDTH,
           oy + y * CHARSET_TILE_HEIGHT,
@@ -154,6 +231,9 @@ class Rect {
     if (b.y < a.y) [a, b, flip] = [b, a, -1];
     return flip * (b.y - (a.y + a.h) - epsilon);
   }
+  centroid() {
+    return [this.x + this.w / 2, this.y + this.h / 2];
+  }
 }
 
 class Entity {
@@ -169,8 +249,24 @@ class Entity {
     this.animStartTime = 0;
     this._counter = 0;
     this._frameIndex = 0;
+    this._interactCount = 0;
   }
-
+  setInteract(f) {
+    this._interact = f;
+  }
+  canInteract() {
+    return !!this._interact;
+  }
+  interact() {
+    this._interact(this);
+  }
+  queueScript(script) {
+    for (const line of script) {
+      const f = makeFuncShowText(line);
+      func_queue.push(f);
+    }
+    func_queue.push(hideText);
+  }
   get x() {
     return this._x;
   }
@@ -204,20 +300,6 @@ class Entity {
     return this.data.animations[this.state][this.facing].getFrame(this._counter);
   }
 }
-
-// TODO
-// parameters: facing, animation, time
-// const animations = {
-//   walk: { down: [frame1, frame2, ... ], right: [ ...
-//   idle: { ...
-// }
-// const frame = {
-//   duration: number
-//   srcRect: Rect
-//   ssSrcRect: Rect
-//   ssOffsetX: number
-//   ssOffsetY: number
-// }
 
 class Frame {
   constructor(x, y, w, h, duration) {
@@ -370,6 +452,14 @@ document.onkeydown = function (e) {
     case 68: // d
     is_pressed_right = true;
     break;
+    case 69: // e
+    case 90: // z
+    if (e.repeat) break;
+    if (is_pressed_interact) break;
+    if (is_paused) break;
+    is_pressed_interact = true;
+    try_interact = true;
+    break;
     case 32: // spacebar
     if (e.repeat) break;
     if (is_pressed_dash) break;
@@ -403,6 +493,10 @@ document.onkeyup = function (e) {
     case 39: // right arrow
     case 68: // d
     is_pressed_right = false;
+    break;
+    case 69: // e
+    case 90: // z
+    is_pressed_interact = false;
     break;
     case 32: // spacebar
     is_pressed_dash = false;
@@ -543,9 +637,14 @@ async function main() {
   shader_programs.debug = createProgram(gl, vs_debug, fs_debug);
 
   // --- ADD TEXT BOXES ---
-  pause_text_box = new TextBox("- pause -", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, true);
+  pause_text_box = new TextBox("- paused -", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
+    undefined, HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
   pause_text_box.visible = false;
   text_boxes.push(pause_text_box);
+  interact_text_box = new TextBox("(placeholder)", 0, SCREEN_HEIGHT,
+    undefined, HorizontalAlignment.LEFT, VerticalAlignment.BOTTOM);
+  interact_text_box.visible = false;
+  text_boxes.push(interact_text_box);
 
   // --- LOAD SPRITE DATA ---
 
@@ -696,6 +795,24 @@ async function main() {
         if (entity.__identifier === "Player") {
           player = inst;
         }
+        if (
+          entity.fieldInstances &&
+          entity.fieldInstances.length >= 2 &&
+          entity.fieldInstances[0].__identifier === "script" &&
+          entity.fieldInstances[1].__identifier === "script2" &&
+          entity.fieldInstances[0].__value.length > 0)
+        {
+          const script = entity.fieldInstances[0].__value;
+          const script2 = entity.fieldInstances[1].__value;
+          inst.setInteract(self => {
+            if (self._interactCount === 0) {
+              self.queueScript(script);
+            } else {
+              self.queueScript(script2);
+            }
+            self._interactCount++;
+          });
+        }
       }
     }
   }
@@ -761,13 +878,59 @@ function step(timestamp) {
 }
 
 function update(dt) {
+  // if paused, return early
   pause_text_box.visible = is_paused;
   if (is_paused) {
     return;
   }
+
+  if (try_interact) {
+    try_interact = false;
+    if (func_queue.length === 0 && targeted_entity) {
+      targeted_entity.interact();
+    }
+    // queue may have been updated
+    if (func_queue.length > 0) {
+      func_queue.shift()();
+      return;
+    }
+  }
+
+  // if queue still has stuff, skip rest of update()
+  if (func_queue.length > 0) {
+    return;
+  }
+
+  // advance entity timers
   for (const entity of entity_instances) {
     entity.advance(dt);
   }
+
+  // update targeted entity
+  {
+    const [x1, y1] = player.rect.centroid();
+    if (targeted_entity) {
+      const [x2, y2] = targeted_entity.rect.centroid();
+      const dist = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+      // TODO factor out magic number
+      if (dist > 32) {
+        targeted_entity = undefined;
+      }
+    }
+    if (!targeted_entity) {
+      for (const entity of entity_instances) {
+        if (player === entity) continue;
+        if (!entity.canInteract()) continue;
+        const [x2, y2] = entity.rect.centroid();
+        const dist = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+        if (dist < 32) {
+          targeted_entity = entity;
+          break;
+        }
+      }
+    }
+  }
+
   player_dash_counter = Math.max(0, player_dash_counter - dt);
   if (player_dash_counter === 0) {
     player_is_dashing = false;
@@ -1064,13 +1227,21 @@ function render() {
         if (!textBox.visible) continue;
         {
           const r = textBox.bgRect();
-          gl.uniform4f(u_srcRect, 0, 0, CHARSET_TILE_WIDTH, CHARSET_TILE_HEIGHT);
-          gl.uniform4f(u_dstRect, r.x, r.y, r.w, r.h);
+          gl.uniform4f(u_srcRect,
+            0, 0,
+            CHARSET_TILE_WIDTH, CHARSET_TILE_HEIGHT);
+          gl.uniform4f(u_dstRect,
+            Math.round(r.x), Math.round(r.y),
+            Math.round(r.w), Math.round(r.h));
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         }
         for (const [s, d] of textBox.charRects()) {
-          gl.uniform4f(u_srcRect, s.x, s.y, s.w, s.h);
-          gl.uniform4f(u_dstRect, d.x, d.y, d.w, d.h);
+          gl.uniform4f(u_srcRect,
+            Math.round(s.x), Math.round(s.y),
+            Math.round(s.w), Math.round(s.h));
+          gl.uniform4f(u_dstRect,
+            Math.round(d.x), Math.round(d.y),
+            Math.round(d.w), Math.round(d.h));
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         }
       }
@@ -1159,6 +1330,10 @@ function render() {
       if (span.innerHTML !== result) {
         span.innerHTML = result;
       }
+    }
+    {
+      const span = document.getElementById("target");
+      span.innerHTML = targeted_entity ? targeted_entity.identifier : "N/A";
     }
   }
 }

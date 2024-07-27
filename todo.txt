@@ -1,5 +1,4 @@
-- show text on interact
-- interactable entities
+- implement some commands
 - item/inventory system
 
 - render order: render diagonals from bottom left to top right
@@ -11,6 +10,8 @@
 - add variety of floor tiles
 
 - player dash trail (cyan after image)
+- animated effect for regaining dash ability
+- aura for having dash ready
 - render intersection of player silhouette and self-shadow to shadow map first
 - explore quantizing position to animation framerate
 - add light sensor to ui
