@@ -1,7 +1,9 @@
-- implement some commands
+- command: selfdestruct
 - item/inventory system
+- command: give
+- interact w/ item
 
-- render order: render diagonals from bottom left to top right
+- render order
 
 - quantize camera to area grid
 - quantize character to pixel grid
