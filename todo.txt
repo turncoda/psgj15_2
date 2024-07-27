@@ -2,6 +2,7 @@
 - item/inventory system
 - command: give
 - interact w/ item
+- dialogue choices
 
 - render order
 

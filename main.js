@@ -80,6 +80,12 @@ function makeFuncShowText(text) {
     interact_text_box.visible = true;
   };
 }
+function makeFuncCompose(f, g) {
+  return () => {
+    f();
+    g();
+  };
+}
 
 class TextBox {
   constructor(text, x, y, max_chars_per_line, horizontal_alignment, vertical_alignment) {
@@ -260,12 +266,40 @@ class Entity {
   interact() {
     this._interact(this);
   }
-  queueScript(script) {
-    for (const line of script) {
-      const f = makeFuncShowText(line);
-      func_queue.push(f);
+  makeFuncRunCmd(cmd) {
+    const tokens = cmd.split(" ");
+    switch(tokens[0]) {
+      case "selfdestruct":
+        return () => {
+          const i = entity_instances.indexOf(this);
+          if (i >= 0) {
+            entity_instances.splice(i, 1);
+          }
+        };
+      case "give":
+        return () => {
+          console.log("give");
+        };
     }
-    func_queue.push(hideText);
+  }
+  queueScript(script) {
+    let is_text_showing = false;
+    for (const line of script) {
+      const [text, cmd] = line.split("#");
+      let f;
+      if (text) {
+        is_text_showing = true;
+        f = makeFuncShowText(text);
+      } else {
+        is_text_showing = false;
+        f = hideText;
+      }
+      const g = cmd ? this.makeFuncRunCmd(cmd) : () => {};
+      func_queue.push(makeFuncCompose(f, g));
+    }
+    if (is_text_showing) {
+      func_queue.push(hideText);
+    }
   }
   get x() {
     return this._x;
