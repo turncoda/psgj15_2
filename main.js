@@ -584,7 +584,7 @@ async function main() {
   spritesheet_json = assets[2];
 
   // --- INIT WEBGL ---
-  let canvas = document.querySelector("#canvas");
+  let canvas = document.getElementById("canvas");
   gl = canvas.getContext("webgl2");
   if (!gl) {
     console.error("couldn't obtain webgl2 context");
@@ -659,24 +659,24 @@ async function main() {
 
   // --- COMPILE SHADERS ---
 
-  let vs_tiles = document.querySelector("#vs_tiles").innerHTML.trim();
-  let fs_tiles = document.querySelector("#fs_tiles").innerHTML.trim();
+  let vs_tiles = document.getElementById("vs_tiles").innerHTML.trim();
+  let fs_tiles = document.getElementById("fs_tiles").innerHTML.trim();
   shader_programs.tiles = createProgram(gl, vs_tiles, fs_tiles);
 
-  let vs_tiles_mask = document.querySelector("#vs_tiles_mask").innerHTML.trim();
-  let fs_tiles_mask = document.querySelector("#fs_tiles_mask").innerHTML.trim();
+  let vs_tiles_mask = document.getElementById("vs_tiles_mask").innerHTML.trim();
+  let fs_tiles_mask = document.getElementById("fs_tiles_mask").innerHTML.trim();
   shader_programs.tiles_mask = createProgram(gl, vs_tiles_mask, fs_tiles_mask);
 
-  let vs_shadow = document.querySelector("#vs_shadow").innerHTML.trim();
-  let fs_shadow = document.querySelector("#fs_shadow").innerHTML.trim();
+  let vs_shadow = document.getElementById("vs_shadow").innerHTML.trim();
+  let fs_shadow = document.getElementById("fs_shadow").innerHTML.trim();
   shader_programs.shadow = createProgram(gl, vs_shadow, fs_shadow);
 
-  let vs_pass = document.querySelector("#vs_pass").innerHTML.trim();
-  let fs_pass = document.querySelector("#fs_pass").innerHTML.trim();
+  let vs_pass = document.getElementById("vs_pass").innerHTML.trim();
+  let fs_pass = document.getElementById("fs_pass").innerHTML.trim();
   shader_programs.pass = createProgram(gl, vs_pass, fs_pass);
 
-  let vs_debug = document.querySelector("#vs_debug").innerHTML.trim();
-  let fs_debug = document.querySelector("#fs_debug").innerHTML.trim();
+  let vs_debug = document.getElementById("vs_debug").innerHTML.trim();
+  let fs_debug = document.getElementById("fs_debug").innerHTML.trim();
   shader_programs.debug = createProgram(gl, vs_debug, fs_debug);
 
   // --- ADD TEXT BOXES ---
