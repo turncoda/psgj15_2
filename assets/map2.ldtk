@@ -1260,12 +1260,12 @@
 									"id": "V_String",
 									"params": ["Have you brought me a BeetRoot?"]
 								}] },
-								{ "__identifier": "script_item", "__type": "Array<String>", "__value": [ "OMG, it is a BeetRoot. OwO", "#take BeetRoot" ], "__tile": null, "defUid": 31, "realEditorValues": [ {
+								{ "__identifier": "script_item", "__type": "Array<String>", "__value": [ "OMG, it is a BeetRoot. OwO", "om nom nom#take" ], "__tile": null, "defUid": 31, "realEditorValues": [ {
 									"id": "V_String",
 									"params": ["OMG, it is a BeetRoot. OwO"]
 								}, {
 									"id": "V_String",
-									"params": ["#take BeetRoot"]
+									"params": ["om nom nom#take"]
 								} ] },
 								{ "__identifier": "trigger_item", "__type": "String", "__value": "BeetRoot", "__tile": null, "defUid": 30, "realEditorValues": [{
 									"id": "V_String",

@@ -1,6 +1,4 @@
 - trigger entity that has no sprite, that auto-interacts when you touch it
-- interact w/ item
-- conditional interact with item
 - command: warp to a level at given location
 - command: change time of day
 - die after staying in sunlight too long

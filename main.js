@@ -264,8 +264,8 @@ class Entity {
   canInteract() {
     return !!this._interact;
   }
-  interact() {
-    this._interact(this);
+  interact(item) {
+    this._interact(this, item);
   }
   makeFuncRunCmd(cmd) {
     const tokens = cmd.split(" ");
@@ -284,6 +284,15 @@ class Entity {
           const item = entity_data[name].makeInstance();
           player_inventory.push(item);
         };
+      case "take":
+        return () => {
+          player_inventory.splice(player_inventory_index, 1);
+          player_inventory_index = -1;
+        }
+      default:
+        console.warn("unhandled command:", tokens[0]);
+        return () => {};
+
     }
   }
   queueScript(script) {
@@ -474,7 +483,6 @@ class EntityData {
 window.addEventListener("load", main);
 
 document.onkeydown = function (e) {
-  console.log(e.keyCode);
   switch (e.keyCode) {
     case 81: // q
     // cycle through -1..N-1 where N is inventory size
@@ -878,22 +886,19 @@ async function main() {
         if (entity.__identifier === "Player") {
           player = inst;
         }
-        if (
-          entity.fieldInstances &&
-          entity.fieldInstances.length >= 2 &&
-          entity.fieldInstances[0].__identifier === "script" &&
-          entity.fieldInstances[1].__identifier === "script2" &&
-          entity.fieldInstances[0].__value.length > 0)
-        {
-          const script = entity.fieldInstances[0].__value;
-          const script2 = entity.fieldInstances[1].__value;
-          inst.setInteract(self => {
-            if (self._interactCount === 0) {
-              self.queueScript(script);
+        const fields = makeObjectFromFieldInstances(entity.fieldInstances);
+        if (fields) {
+          inst.setInteract((self, item) => {
+            if (item && item.identifier === fields.trigger_item) {
+              self.queueScript(fields.script_item);
             } else {
-              self.queueScript(script2);
+              if (self._interactCount === 0) {
+                self.queueScript(fields.script);
+              } else {
+                self.queueScript(fields.script2);
+              }
+              self._interactCount++;
             }
-            self._interactCount++;
           });
         }
       }
@@ -970,7 +975,8 @@ function update(dt) {
   if (try_interact) {
     try_interact = false;
     if (func_queue.length === 0 && targeted_entity) {
-      targeted_entity.interact();
+      const item = player_inventory_index >= 0 ? player_inventory[player_inventory_index] : null;
+      targeted_entity.interact(item);
     }
     // queue may have been updated
     if (func_queue.length > 0) {
@@ -1464,4 +1470,13 @@ function polygonFromArray(x, y, arr) {
 
 function lerp(a, b, pct) {
   return a * (1 - pct) + b * pct;
+}
+
+function makeObjectFromFieldInstances(fieldInstances) {
+  if (!fieldInstances) return undefined;
+  const object = {};
+  for (const field of fieldInstances) {
+    object[field.__identifier] = field.__value;
+  }
+  return object;
 }
