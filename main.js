@@ -36,6 +36,7 @@ let shader_programs = {};
 let spritesheet_json;
 const entity_data = {};
 const entity_instances = [];
+const triggers = [];
 const text_boxes = [];
 let pause_text_box;
 let interact_text_box;
@@ -87,19 +88,6 @@ function makeFuncCompose(f, g) {
     f();
     g();
   };
-}
-
-class Trigger {
-  constructor(rect, script) {
-    this.rect = rect;
-    this.script = script;
-    this.active = true;
-  }
-
-  activate() {
-    this.active = false;
-    console.log(this.script);
-  }
 }
 
 class TextBox {
@@ -897,24 +885,27 @@ async function main() {
           entity.__worldX,
           entity.__worldY,
           entity_data[entity.__identifier]);
-        entity_instances.push(inst);
+        if (entity.__identifier !== "Trigger") {
+          entity_instances.push(inst);
+        }
         if (entity.__identifier === "Player") {
           player = inst;
         }
         if (entity.__identifier === "Trigger") {
-          inst.is_trigger = true;
+          triggers.push(inst);
+          inst.trigger_is_active = true;
           inst.trigger_rect = new Rect(
             entity.px[0], entity.px[1],
             entity.width, entity.height);
           const fields = makeObjectFromFieldInstances(entity.fieldInstances);
           inst.setInteract((self, item) => {
-            if (self._interactCount < 1) {
+            if (self.trigger_is_active) {
               self.queueScript(fields.script);
               // since the player didn't press interact,
               // we explicitly pop off the queue and execute
               func_queue.shift()();
             }
-            self._interactCount++;
+            self.trigger_is_active = false;
           });
         } else { // not trigger
           const fields = makeObjectFromFieldInstances(entity.fieldInstances);
@@ -1127,7 +1118,6 @@ function update(dt) {
     player.x += dx;
     for (const entity of entity_instances) {
       if (entity.identifier === "Player") continue;
-      if (entity.is_trigger) continue;
       if (player.rect.test(entity.rect)) {
         player.x = oldPlayerX + rectCopy.xDistTo(entity.rect, 1e-12);
       }
@@ -1136,7 +1126,6 @@ function update(dt) {
     player.y += dy;
     for (const entity of entity_instances) {
       if (entity.identifier === "Player") continue;
-      if (entity.is_trigger) continue;
       if (player.rect.test(entity.rect)) {
         player.y = oldPlayerY + rectCopy.yDistTo(entity.rect, 1e-12);
       }
@@ -1144,10 +1133,10 @@ function update(dt) {
   }
 
   // trigger detection
-  for (const entity of entity_instances) {
-    if (!entity.is_trigger) continue;
-    if (player.rect.test(entity.trigger_rect)) {
-      entity.interact();
+  for (const trigger of triggers) {
+    if (!trigger.trigger_is_active) continue;
+    if (player.rect.test(trigger.trigger_rect)) {
+      trigger.interact();
     }
   }
 
@@ -1199,7 +1188,6 @@ function render() {
     gl.uniform2f(u_cameraPos, (cx), (cy));
 
     for (const entity of entity_instances) {
-      if (entity.is_trigger) continue;
       const base = Object.assign({}, entity.data.lsBox);
       base.x += entity.x;
       base.y += entity.y;
@@ -1234,7 +1222,6 @@ function render() {
 
       // subtract entities
       for (const entity of entity_instances) {
-        if (entity.is_trigger) continue;
         if (entity.identifier === "Player") continue;
         const rect = entity.data.getStaticFrame().srcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
@@ -1248,7 +1235,6 @@ function render() {
 
       // add entity self-shadow
       for (const entity of entity_instances) {
-        if (entity.is_trigger) continue;
         const frame = entity.data.getStaticFrame();
         const rect = frame.ssSrcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
@@ -1316,7 +1302,6 @@ function render() {
       gl.uniform2f(u_cameraPos, (cx), (cy));
 
       for (const entity of entity_instances) {
-        if (entity.is_trigger) continue;
         const rect = entity.getFrame().srcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
         gl.uniform4f(u_dstRect, Math.round(entity.x), Math.round(entity.y), rect.w, rect.h);
@@ -1405,7 +1390,6 @@ function render() {
       gl.uniform2f(u_scale, 1, 1);
 
       for (const entity of entity_instances) {
-        if (entity.is_trigger) continue;
         // --- draw bounding polygon ---
         gl.uniform3f(u_debugColor, 1, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, entity.data.bounding_polygon_buffer);
@@ -1429,7 +1413,6 @@ function render() {
       gl.uniform3f(u_debugColor, 0, 1, 1);
 
       for (const entity of entity_instances) {
-        if (entity.is_trigger) continue;
         gl.uniform2f(u_scale, entity.rect.w, entity.rect.h);
         gl.uniform2f(u_worldPos, entity.rect.x, entity.rect.y);
         gl.drawArrays(gl.LINE_STRIP, 0, buffer_debug_length);
