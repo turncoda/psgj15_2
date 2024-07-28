@@ -36,7 +36,6 @@ let shader_programs = {};
 let spritesheet_json;
 const entity_data = {};
 const entity_instances = [];
-const player_inventory = [];
 const text_boxes = [];
 let pause_text_box;
 let interact_text_box;
@@ -45,6 +44,8 @@ let prev_timestamp = 0;
 let time_since_last_draw = 0;
 
 let player;
+const player_inventory = [];
+let player_inventory_index = -1;
 let player_sprite_x, player_sprite_y;
 const PLAYER_LOW_SPEED = 0.5;
 const PLAYER_HIGH_SPEED = 1.5;
@@ -474,9 +475,19 @@ class EntityData {
 window.addEventListener("load", main);
 
 document.onkeydown = function (e) {
-  //console.log(e.keyCode);
+  console.log(e.keyCode);
   switch (e.keyCode) {
+    case 81: // q
+    // cycle through -1..N-1 where N is inventory size
+    player_inventory_index =
+      (player_inventory_index + 2) %
+      (player_inventory.length + 1) - 1;
+    break;
     case 27: // esc
+    if (player_inventory_index >= 0) {
+      player_inventory_index = -1;
+      break;
+    }
     is_paused = !is_paused;
     break;
     case 38: // up arrow
@@ -1363,8 +1374,12 @@ function render() {
       span.innerHTML = player_can_dash;
     }
     {
+      const span = document.getElementById("playerInventoryIndex");
+      span.innerHTML = player_inventory_index;
+    }
+    {
       const span = document.getElementById("playerInventory");
-      const result = player_inventory.map(item => item.identifier).join();
+      const result = player_inventory.map((item, index) => { return (index === player_inventory_index ? ">" : "") + item.identifier; }).join();
       span.innerHTML = result;
     }
     {

@@ -1,5 +1,3 @@
-- tab to select item
-- esc to stop select
 - interact w/ item
 - dialogue choices
 
