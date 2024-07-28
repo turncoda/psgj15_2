@@ -723,6 +723,32 @@ async function main() {
     }
   }
 
+  entity_data["Clothesline"].base_rect = new Rect(0.5, 0.5, 3, 0);
+  entity_data["Clothesline"].bounding_polygon = [
+    .5, .5,
+    2, 2,
+    5, 2,
+    3.5, .5,
+  ];
+
+  entity_data["TallTree"].base_rect = new Rect(0, 0, 1, 1);
+  entity_data["TallTree"].bounding_polygon = [
+    0, 0,
+    1, 2,
+    1, 3,
+    3, 3,
+    3, 1,
+    2, 1,
+  ];
+
+  entity_data["Tree"].base_rect = new Rect(0, 0, 1, 1);
+  entity_data["Tree"].bounding_polygon = [
+    0, 0,
+    1, 2,
+    2, 2,
+    2, 1,
+  ];
+
   entity_data["Clocktower"].base_rect = new Rect(0, 0, 2, 2);
   entity_data["Clocktower"].bounding_polygon = [
     0, 0,

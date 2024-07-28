@@ -1,5 +1,6 @@
 - interact w/ item
-- dialogue choices
+- command: warp to a level at given location
+- command: change time of day
 
 - render order
 
