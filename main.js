@@ -95,7 +95,6 @@ class TextBox {
     this._text = text;
     this.x = Math.round(x);
     this.y = Math.round(y);
-    // TODO use enum
     this.horizontal_alignment = horizontal_alignment;
     this.vertical_alignment = vertical_alignment;
     this.max_chars_per_line = max_chars_per_line ??
@@ -1151,8 +1150,8 @@ function render() {
       const base_center_y = (2 * base.y + base.h) / 2.0;
       const rect = entity.getFrame().srcRect;
       gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
-      gl.uniform4f(u_dstRect, entity.x, entity.y, rect.w, rect.h);
-      gl.uniform2f(u_origin, base_center_x, base_center_y);
+      gl.uniform4f(u_dstRect, Math.round(entity.x), Math.round(entity.y), rect.w, rect.h);
+      gl.uniform2f(u_origin, Math.round(base_center_x), Math.round(base_center_y));
       gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
 
@@ -1181,7 +1180,7 @@ function render() {
         if (entity.identifier === "Player") continue;
         const rect = entity.data.getStaticFrame().srcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
-        gl.uniform4f(u_dstRect, entity.x, entity.y, rect.w, rect.h);
+        gl.uniform4f(u_dstRect, Math.round(entity.x), Math.round(entity.y), rect.w, rect.h);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
 
@@ -1194,7 +1193,7 @@ function render() {
         const frame = entity.data.getStaticFrame();
         const rect = frame.ssSrcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
-        gl.uniform4f(u_dstRect, entity.x + frame.ssOffsetX, entity.y + frame.ssOffsetY, rect.w, rect.h);
+        gl.uniform4f(u_dstRect, Math.round(entity.x + frame.ssOffsetX), Math.round(entity.y + frame.ssOffsetY), rect.w, rect.h);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
 
@@ -1258,7 +1257,7 @@ function render() {
       for (const entity of entity_instances) {
         const rect = entity.getFrame().srcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
-        gl.uniform4f(u_dstRect, entity.x, entity.y, rect.w, rect.h);
+        gl.uniform4f(u_dstRect, Math.round(entity.x), Math.round(entity.y), rect.w, rect.h);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
     }
@@ -1429,8 +1428,8 @@ function render() {
 
 function getCameraPosition() {
   return [
-    player.x + 3 * TILE_SIZE - 0.5 * SCREEN_WIDTH,
-    player.y - 0.5 * SCREEN_HEIGHT,
+    Math.round(player.x) + 3 * TILE_SIZE - 0.5 * SCREEN_WIDTH,
+    Math.round(player.y) - 0.5 * SCREEN_HEIGHT,
   ];
 }
 
