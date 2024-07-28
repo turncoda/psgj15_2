@@ -777,6 +777,8 @@ async function main() {
     3, 2,
   ];
 
+  entity_data["BeetRoot"].base_rect = new Rect(.25, .25, .5, .5);
+
   entity_data["DebugBlock"].base_rect = new Rect(0, 0, 1, 1);
   entity_data["DebugBlock"].bounding_polygon = [
     0, 0,
@@ -863,6 +865,8 @@ async function main() {
   // --- SPAWN ENTITIES ---
 
   for (const level of ldtk_map.levels) {
+    // TODO only spawn entities for this level
+    if (level.identifier !== "Level_0") continue;
     for (const layer of level.layerInstances) {
       for (const entity of layer.entityInstances) {
         const inst = new Entity(
@@ -1225,6 +1229,8 @@ function render() {
       gl.uniform2f(u_cameraPos, (cx), (cy));
 
       for (const level of ldtk_map.levels) {
+        // TODO render only this level
+        if (level.identifier !== "Level_0") continue;
         for (const layer of level.layerInstances) {
           for (const tile of layer.gridTiles) {
             gl.uniform4f(u_srcRect,
