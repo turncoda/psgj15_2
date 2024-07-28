@@ -1,6 +1,4 @@
-- command: selfdestruct
-- item/inventory system
-- command: give
+- tab to select item
 - interact w/ item
 - dialogue choices
 

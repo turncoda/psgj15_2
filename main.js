@@ -36,6 +36,7 @@ let shader_programs = {};
 let spritesheet_json;
 const entity_data = {};
 const entity_instances = [];
+const player_inventory = [];
 const text_boxes = [];
 let pause_text_box;
 let interact_text_box;
@@ -271,6 +272,7 @@ class Entity {
     switch(tokens[0]) {
       case "selfdestruct":
         return () => {
+          if (targeted_entity === this) targeted_entity = undefined;
           const i = entity_instances.indexOf(this);
           if (i >= 0) {
             entity_instances.splice(i, 1);
@@ -278,7 +280,9 @@ class Entity {
         };
       case "give":
         return () => {
-          console.log("give");
+          const name = tokens[1];
+          const item = entity_data[name].makeInstance();
+          player_inventory.push(item);
         };
     }
   }
@@ -386,7 +390,8 @@ class Animation {
 }
 
 class EntityData {
-  constructor() {
+  constructor(identifier) {
+    this.identifier = identifier;
     // animations
     // - object. primary key: animation name, secondary key: facing
     // - should always have "Static" animation with "Down" facing
@@ -403,6 +408,10 @@ class EntityData {
     // - (0, 0) is BOTTOM LEFT corner of the sprite
     // - will flip Y when transforming to world position
     this.bounding_polygon = [];
+  }
+
+  makeInstance() {
+    return new Entity(this.identifier, 0, 0, this);
   }
 
   addAnimation(name, facing, animation) {
@@ -686,7 +695,7 @@ async function main() {
     let [id, animName] = tag.name.split("_");
     if (!animName) animName = "Static";
     if (!(id in entity_data)) {
-      const data = new EntityData();
+      const data = new EntityData(id);
       entity_data[id] = data;
     }
     for (const facing of ["Down", "Right", "Up", "Left"]) {
@@ -1352,6 +1361,11 @@ function render() {
     {
       const span = document.getElementById("canDash");
       span.innerHTML = player_can_dash;
+    }
+    {
+      const span = document.getElementById("playerInventory");
+      const result = player_inventory.map(item => item.identifier).join();
+      span.innerHTML = result;
     }
     {
       const span = document.getElementById("dashCounter");
