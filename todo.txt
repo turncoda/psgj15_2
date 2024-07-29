@@ -1,5 +1,3 @@
-- render only this level
-- command: warp to a level at given location
 - command: change time of day
 - die after staying in sunlight too long
 - targeted entity indicator
@@ -7,8 +5,7 @@
 
 - render order
 
-- quantize camera to area grid
-- quantize character to pixel grid
+- limit camera to play area
 
 - do level design
 - add variety of floor tiles

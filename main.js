@@ -294,6 +294,20 @@ class Entity {
             g_level.entity_instances.splice(i, 1);
           }
         };
+      case "warp":
+        return () => {
+          // remove player from current level
+          const i = g_level.entity_instances.indexOf(player);
+          if (i >= 0) g_level.entity_instances.splice(i, 1);
+          // set current level
+          g_level_name = tokens[1];
+          g_level = g_levels[g_level_name];
+          // add player to current level
+          g_level.entity_instances.push(player);
+          // set player coordinates
+          player.x = parseInt(tokens[2]);
+          player.y = parseInt(tokens[3]);
+        };
       case "give":
         return () => {
           const name = tokens[1];
@@ -924,7 +938,9 @@ async function main() {
               const func = func_queue.shift();
               if (func) func();
             }
-            self.trigger_is_active = false;
+            if (fields.oneTimeUse) {
+              self.trigger_is_active = false;
+            }
           });
         } else { // not trigger
           const fields = makeObjectFromFieldInstances(entity.fieldInstances);
