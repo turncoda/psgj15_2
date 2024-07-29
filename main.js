@@ -1275,9 +1275,9 @@ function render() {
         for (const layer of level.layerInstances) {
           for (const tile of layer.gridTiles) {
             gl.uniform4f(u_srcRect,
-              tile.src[0], tile.src[1], layer.__cWid, layer.__cHei);
+              tile.src[0], tile.src[1], TILE_SIZE, TILE_SIZE);
             gl.uniform4f(u_dstRect,
-              tile.px[0] + layer.__pxTotalOffsetX, tile.px[1] + layer.__pxTotalOffsetY, layer.__cWid, layer.__cHei);
+              level.worldX + tile.px[0], level.worldY + tile.px[1], TILE_SIZE, TILE_SIZE);
             gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
           }
         }
