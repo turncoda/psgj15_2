@@ -37,7 +37,7 @@ let spritesheet_json;
 const entity_data = {};
 const g_levels = [];
 const text_boxes = [];
-let g_level_name = "Level_0";
+let g_level_name;
 let g_level;
 let pause_text_box;
 let interact_text_box;
@@ -786,6 +786,48 @@ async function main() {
     2, 1,
   ];
 
+  entity_data["Gravedigger"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["Gravedigger"].bounding_polygon = [
+    0, 0,
+    0, 1,
+    1, 2,
+    2, 2,
+    2, 1,
+    1, 0,
+  ];
+
+  entity_data["Gravestone"].base_rect = new Rect(.4, .4, 1.2, .2);
+  entity_data["Gravestone"].bounding_polygon = [
+    .5, .5,
+    1.5, 1.5,
+    2.5, 1.5,
+    1.5, .5,
+  ];
+
+  entity_data["FenceDoor"].base_rect = new Rect(.4, .4, 1.2, .2);
+  entity_data["FenceDoor"].bounding_polygon = [
+    .5, .5,
+    1.5, 1.5,
+    2.5, 1.5,
+    1.5, .5,
+  ];
+
+  entity_data["VerticalFence"].base_rect = new Rect(.4, .4, .2, 6.2);
+  entity_data["VerticalFence"].bounding_polygon = [
+    .5, .5,
+    .5, 6.5,
+    1.5, 7.5,
+    1.5, 1.5,
+  ];
+
+  entity_data["HorizontalFence"].base_rect = new Rect(.4, .4, 6.2, .2);
+  entity_data["HorizontalFence"].bounding_polygon = [
+    .5, .5,
+    1.5, 1.5,
+    7.5, 1.5,
+    6.5, .5,
+  ];
+
   entity_data["Clocktower"].base_rect = new Rect(0, 0, 2, 2);
   entity_data["Clocktower"].bounding_polygon = [
     0, 0,
@@ -816,6 +858,7 @@ async function main() {
   ];
 
   entity_data["BeetRoot"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["Coin"].base_rect = new Rect(.25, .25, .5, .5);
 
   entity_data["DebugBlock"].base_rect = new Rect(0, 0, 1, 1);
   entity_data["DebugBlock"].bounding_polygon = [
@@ -922,6 +965,7 @@ async function main() {
         if (entity.__identifier === "Player") {
           console.assert(!player);
           player = inst;
+          g_level_name = level.identifier;
         }
         if (entity.__identifier === "Trigger") {
           triggers.push(inst);
@@ -944,7 +988,7 @@ async function main() {
           });
         } else { // not trigger
           const fields = makeObjectFromFieldInstances(entity.fieldInstances);
-          if (fields) {
+          if (fields && fields.script && fields.script.length > 0) {
             inst.setInteract((self, item) => {
               if (item && item.identifier === fields.trigger_item) {
                 self.queueScript(fields.script_item);
@@ -952,7 +996,11 @@ async function main() {
                 if (self._interactCount === 0) {
                   self.queueScript(fields.script);
                 } else {
-                  self.queueScript(fields.script2);
+                  if (fields.script2 && fields.script2.length > 0) {
+                    self.queueScript(fields.script2);
+                  } else {
+                    self.queueScript(fields.script);
+                  }
                 }
                 self._interactCount++;
               }

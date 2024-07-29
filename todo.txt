@@ -1,3 +1,4 @@
+- add asterisk to the font
 - command: change time of day
 - die after staying in sunlight too long
 - targeted entity indicator
@@ -8,7 +9,6 @@
 - limit camera to play area
 
 - do level design
-- add variety of floor tiles
 
 - player dash trail (cyan after image)
 - animated effect for regaining dash ability
