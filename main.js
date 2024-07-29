@@ -1449,6 +1449,18 @@ function render() {
         gl.uniform2f(u_worldPos, entity.rect.x, entity.rect.y);
         gl.drawArrays(gl.LINE_STRIP, 0, buffer_debug_length);
       }
+
+      // draw triggers
+      for (const trigger of g_level.triggers) {
+        if (trigger.trigger_is_active) {
+          gl.uniform3f(u_debugColor, 0, 1, 0);
+        } else {
+          gl.uniform3f(u_debugColor, 1, 0, 1);
+        }
+        gl.uniform2f(u_scale, trigger.trigger_rect.w, trigger.trigger_rect.h);
+        gl.uniform2f(u_worldPos, trigger.trigger_rect.x, trigger.trigger_rect.y);
+        gl.drawArrays(gl.LINE_STRIP, 0, buffer_debug_length);
+      }
     }
 
     // update debug read-out

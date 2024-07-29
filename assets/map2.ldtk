@@ -1483,7 +1483,7 @@
 						},
 						{
 							"__identifier": "Player",
-							"__grid": [25,3],
+							"__grid": [25,4],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": { "tilesetUid": 1, "x": 16, "y": 400, "w": 32, "h": 32 },
@@ -1492,10 +1492,35 @@
 							"width": 32,
 							"height": 32,
 							"defUid": 11,
-							"px": [407,54],
+							"px": [407,70],
 							"fieldInstances": [],
 							"__worldX": 281,
-							"__worldY": 119
+							"__worldY": 135
+						},
+						{
+							"__identifier": "Trigger",
+							"__grid": [23,4],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#00FF0E",
+							"iid": "9ba5ef00-4ce0-11ef-b115-dbde2e093b66",
+							"width": 16,
+							"height": 16,
+							"defUid": 41,
+							"px": [376,64],
+							"fieldInstances": [
+								{ "__identifier": "script", "__type": "Array<String>", "__value": ["(hit an invisible trigger)"], "__tile": null, "defUid": 42, "realEditorValues": [{
+									"id": "V_String",
+									"params": ["(hit an invisible trigger)"]
+								}] },
+								{ "__identifier": "oneTimeUse", "__type": "Bool", "__value": true, "__tile": null, "defUid": 43, "realEditorValues": [{
+									"id": "V_Bool",
+									"params": [ true ]
+								}] }
+							],
+							"__worldX": 250,
+							"__worldY": 129
 						}
 					]
 				},
