@@ -35,9 +35,10 @@ let fb;
 let shader_programs = {};
 let spritesheet_json;
 const entity_data = {};
-const entity_instances = [];
-const triggers = [];
+const g_levels = [];
 const text_boxes = [];
+let g_level_name = "Level_0";
+let g_level;
 let pause_text_box;
 let interact_text_box;
 
@@ -88,6 +89,18 @@ function makeFuncCompose(f, g) {
     f();
     g();
   };
+}
+
+class Level {
+  constructor(x, y, w, h, ei, tr, ti) {
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+    this.entity_instances = ei;
+    this.triggers = tr;
+    this.tiles = ti;
+  }
 }
 
 class TextBox {
@@ -276,9 +289,9 @@ class Entity {
       case "selfdestruct":
         return () => {
           if (targeted_entity === this) targeted_entity = undefined;
-          const i = entity_instances.indexOf(this);
+          const i = g_level.entity_instances.indexOf(this);
           if (i >= 0) {
-            entity_instances.splice(i, 1);
+            g_level.entity_instances.splice(i, 1);
           }
         };
       case "give":
@@ -876,9 +889,13 @@ async function main() {
   // --- SPAWN ENTITIES ---
 
   for (const level of ldtk_map.levels) {
-    // TODO only spawn entities for this level
-    if (level.identifier !== "Level_0") continue;
+    const entity_instances = [];
+    const triggers = [];
+    const tiles = [];
     for (const layer of level.layerInstances) {
+      for (const tile of layer.gridTiles) {
+        tiles.push(tile);
+      }
       for (const entity of layer.entityInstances) {
         const inst = new Entity(
           entity.__identifier,
@@ -889,13 +906,14 @@ async function main() {
           entity_instances.push(inst);
         }
         if (entity.__identifier === "Player") {
+          console.assert(!player);
           player = inst;
         }
         if (entity.__identifier === "Trigger") {
           triggers.push(inst);
           inst.trigger_is_active = true;
           inst.trigger_rect = new Rect(
-            entity.px[0], entity.px[1],
+            entity.px[0] + level.worldX, entity.px[1] + level.worldY,
             entity.width, entity.height);
           const fields = makeObjectFromFieldInstances(entity.fieldInstances);
           inst.setInteract((self, item) => {
@@ -903,7 +921,8 @@ async function main() {
               self.queueScript(fields.script);
               // since the player didn't press interact,
               // we explicitly pop off the queue and execute
-              func_queue.shift()();
+              const func = func_queue.shift();
+              if (func) func();
             }
             self.trigger_is_active = false;
           });
@@ -926,7 +945,10 @@ async function main() {
         }
       }
     }
+    g_levels[level.identifier] = new Level(level.worldX, level.worldY, level.pxWid, level.pxHei, entity_instances, triggers, tiles);
   }
+
+  g_level = g_levels[g_level_name];
 
   // --- SET UP VERTEX ARRAYS ---
 
@@ -1014,7 +1036,7 @@ function update(dt) {
   }
 
   // advance entity timers
-  for (const entity of entity_instances) {
+  for (const entity of g_level.entity_instances) {
     entity.advance(dt);
   }
 
@@ -1030,7 +1052,7 @@ function update(dt) {
       }
     }
     if (!targeted_entity) {
-      for (const entity of entity_instances) {
+      for (const entity of g_level.entity_instances) {
         if (player === entity) continue;
         if (!entity.canInteract()) continue;
         if (!entity.rect) continue;
@@ -1116,7 +1138,7 @@ function update(dt) {
     const oldPlayerY = player.y;
 
     player.x += dx;
-    for (const entity of entity_instances) {
+    for (const entity of g_level.entity_instances) {
       if (entity.identifier === "Player") continue;
       if (player.rect.test(entity.rect)) {
         player.x = oldPlayerX + rectCopy.xDistTo(entity.rect, 1e-12);
@@ -1124,7 +1146,7 @@ function update(dt) {
     }
 
     player.y += dy;
-    for (const entity of entity_instances) {
+    for (const entity of g_level.entity_instances) {
       if (entity.identifier === "Player") continue;
       if (player.rect.test(entity.rect)) {
         player.y = oldPlayerY + rectCopy.yDistTo(entity.rect, 1e-12);
@@ -1133,7 +1155,7 @@ function update(dt) {
   }
 
   // trigger detection
-  for (const trigger of triggers) {
+  for (const trigger of g_level.triggers) {
     if (!trigger.trigger_is_active) continue;
     if (player.rect.test(trigger.trigger_rect)) {
       trigger.interact();
@@ -1145,7 +1167,7 @@ function update(dt) {
     let shadow_level = 0;
     forEachPair(player_light_sensors, (x, y) => {
       const point = new SAT.Vector(player.x + x, player.y + y);
-      for (const entity of entity_instances) {
+      for (const entity of g_level.entity_instances) {
         if (entity.identifier === "Player") continue;
         const polygon = entity.shadowPolygon;
         if (!polygon) continue;
@@ -1187,7 +1209,7 @@ function render() {
     const [cx, cy] = getCameraPosition();
     gl.uniform2f(u_cameraPos, (cx), (cy));
 
-    for (const entity of entity_instances) {
+    for (const entity of g_level.entity_instances) {
       const base = Object.assign({}, entity.data.lsBox);
       base.x += entity.x;
       base.y += entity.y;
@@ -1221,7 +1243,7 @@ function render() {
       gl.uniform2f(u_cameraPos, (cx), (cy));
 
       // subtract entities
-      for (const entity of entity_instances) {
+      for (const entity of g_level.entity_instances) {
         if (entity.identifier === "Player") continue;
         const rect = entity.data.getStaticFrame().srcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
@@ -1234,7 +1256,7 @@ function render() {
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
       // add entity self-shadow
-      for (const entity of entity_instances) {
+      for (const entity of g_level.entity_instances) {
         const frame = entity.data.getStaticFrame();
         const rect = frame.ssSrcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
@@ -1269,18 +1291,12 @@ function render() {
       const [cx, cy] = getCameraPosition();
       gl.uniform2f(u_cameraPos, (cx), (cy));
 
-      for (const level of ldtk_map.levels) {
-        // TODO render only this level
-        if (level.identifier !== "Level_0") continue;
-        for (const layer of level.layerInstances) {
-          for (const tile of layer.gridTiles) {
-            gl.uniform4f(u_srcRect,
-              tile.src[0], tile.src[1], TILE_SIZE, TILE_SIZE);
-            gl.uniform4f(u_dstRect,
-              level.worldX + tile.px[0], level.worldY + tile.px[1], TILE_SIZE, TILE_SIZE);
-            gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-          }
-        }
+      for (const tile of g_level.tiles) {
+        gl.uniform4f(u_srcRect,
+          tile.src[0], tile.src[1], TILE_SIZE, TILE_SIZE);
+        gl.uniform4f(u_dstRect,
+          g_level.x + tile.px[0], g_level.y + tile.px[1], TILE_SIZE, TILE_SIZE);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
     }
 
@@ -1301,7 +1317,7 @@ function render() {
       const [cx, cy] = getCameraPosition();
       gl.uniform2f(u_cameraPos, (cx), (cy));
 
-      for (const entity of entity_instances) {
+      for (const entity of g_level.entity_instances) {
         const rect = entity.getFrame().srcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
         gl.uniform4f(u_dstRect, Math.round(entity.x), Math.round(entity.y), rect.w, rect.h);
@@ -1389,7 +1405,7 @@ function render() {
       gl.uniform2f(u_cameraPos, (cx), (cy));
       gl.uniform2f(u_scale, 1, 1);
 
-      for (const entity of entity_instances) {
+      for (const entity of g_level.entity_instances) {
         // --- draw bounding polygon ---
         gl.uniform3f(u_debugColor, 1, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, entity.data.bounding_polygon_buffer);
@@ -1412,7 +1428,7 @@ function render() {
       gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
       gl.uniform3f(u_debugColor, 0, 1, 1);
 
-      for (const entity of entity_instances) {
+      for (const entity of g_level.entity_instances) {
         gl.uniform2f(u_scale, entity.rect.w, entity.rect.h);
         gl.uniform2f(u_worldPos, entity.rect.x, entity.rect.y);
         gl.drawArrays(gl.LINE_STRIP, 0, buffer_debug_length);
