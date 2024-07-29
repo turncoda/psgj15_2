@@ -1,4 +1,3 @@
-- add asterisk to the font
 - command: change time of day
 - die after staying in sunlight too long
 - targeted entity indicator

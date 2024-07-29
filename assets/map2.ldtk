@@ -3706,7 +3706,7 @@
 								{ "__identifier": "script_item", "__type": "Array<String>", "__value": [
 									"*click*#take",
 									"the door creaks open#selfdestruct",
-									"the Key was so poorly made it snapped off inside the lock. oops"
+									"the Key snapped off inside the lock. oops"
 								], "__tile": null, "defUid": 55, "realEditorValues": [ {
 									"id": "V_String",
 									"params": ["*click*#take"]
@@ -3715,7 +3715,7 @@
 									"params": ["the door creaks open#selfdestruct"]
 								}, {
 									"id": "V_String",
-									"params": ["the Key was so poorly made it snapped off inside the lock. oops"]
+									"params": ["the Key snapped off inside the lock. oops"]
 								} ] }
 							],
 							"__worldX": 329,
