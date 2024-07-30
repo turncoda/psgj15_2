@@ -4,8 +4,7 @@
 - invisible collision box
 
 - render order
-
-- limit camera to play area
+- limit player and camera to play area
 
 - do level design
 

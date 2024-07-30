@@ -74,6 +74,7 @@ let player_is_dashing = false;
 let is_debug_vis = false;
 let is_paused = false;
 let is_frozen = false;
+let is_night = false;
 
 function hideText() {
   interact_text_box.visible = false;
@@ -786,6 +787,26 @@ async function main() {
     2, 1,
   ];
 
+  entity_data["BeetPlant"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["BeetPlant"].bounding_polygon = [
+    0, 0,
+    0, 1,
+    1, 2,
+    2, 2,
+    2, 1,
+    1, 0,
+  ];
+
+  entity_data["Farmer"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["Farmer"].bounding_polygon = [
+    0, 0,
+    0, 1,
+    1, 2,
+    2, 2,
+    2, 1,
+    1, 0,
+  ];
+
   entity_data["Gravedigger"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["Gravedigger"].bounding_polygon = [
     0, 0,
@@ -1243,6 +1264,9 @@ function update(dt) {
     });
     player_shadow_level = shadow_level;
   }
+  if (is_night) {
+    player_shadow_level = player_light_sensors.length / 2.0;
+  }
 
   if (!player_can_dash && player_shadow_level > 0 && !player_is_dashing) {
     player_can_dash = true;
@@ -1328,6 +1352,11 @@ function render() {
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
 
+    }
+
+    if (is_night) {
+      gl.clearColor(1.0, 1.0, 1.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
     }
   }
 
