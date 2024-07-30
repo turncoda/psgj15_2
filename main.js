@@ -918,8 +918,32 @@ async function main() {
     3, 2,
   ];
 
+  entity_data["CeilingSlats"].base_rect = new Rect(-4, -4, 1, 1);
+  entity_data["CeilingSlats"].bounding_polygon = [
+    0, 0,
+    0, 4,
+    4, 4,
+    4, 0,
+  ];
+  entity_data["CeilingSlats2"].base_rect = new Rect(-5, -5, 1, 1);
+  entity_data["CeilingSlats2"].bounding_polygon = [
+    0, 0,
+    0, 2,
+    2, 2,
+    2, 0,
+  ];
+  entity_data["LightGradient"].base_rect = new Rect(-5, -4, 1, 1);
+  entity_data["LightGradient"].bounding_polygon = [
+    0, 0,
+    0, 3,
+    2, 3,
+    2, 0,
+  ];
+
   entity_data["BeetRoot"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["Coin"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["ShedKey"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["Rope"].base_rect = new Rect(.25, .25, .5, .5);
 
   entity_data["DebugBlock"].base_rect = new Rect(0, 0, 1, 1);
   entity_data["DebugBlock"].bounding_polygon = [
@@ -1076,7 +1100,10 @@ async function main() {
         }
       }
     }
-    g_levels[level.identifier] = new Level(level.worldX, level.worldY, level.pxWid, level.pxHei, entity_instances, triggers, tiles);
+    const new_level = new Level(level.worldX, level.worldY, level.pxWid, level.pxHei, entity_instances, triggers, tiles);
+    const fields = makeObjectFromFieldInstances(level.fieldInstances);
+    Object.assign(new_level, fields);
+    g_levels[level.identifier] = new_level;
   }
 
   g_level = g_levels[g_level_name];
@@ -1317,6 +1344,9 @@ function update(dt) {
   if (is_night) {
     player_shadow_level = player_light_sensors.length / 2.0;
   }
+  if (g_level.is_indoors) {
+    player_shadow_level = player_light_sensors.length / 2.0;
+  }
 
   if (!player_can_dash && player_shadow_level > 0 && !player_is_dashing) {
     player_can_dash = true;
@@ -1407,7 +1437,7 @@ function render() {
 
     }
 
-    if (is_night) {
+    if (is_night || g_level.is_indoors) {
       gl.clearColor(1.0, 1.0, 1.0, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
     }

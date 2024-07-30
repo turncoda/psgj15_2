@@ -1,9 +1,13 @@
-- die after staying in sunlight too long
+- limit player and camera to play area
 - targeted entity indicator
+- inventory ui
+
+
+
+- die after staying in sunlight too long
 - invisible collision box
 
 - render order
-- limit player and camera to play area
 
 - farmer quest
   - water his plants
