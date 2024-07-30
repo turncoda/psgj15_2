@@ -93,7 +93,7 @@ function makeFuncCompose(f, g) {
 }
 
 class Level {
-  constructor(x, y, w, h, ei, tr, ti) {
+  constructor(x, y, w, h, ei, tr, ti, iw) {
     this.x = x;
     this.y = y;
     this.w = w;
@@ -101,6 +101,7 @@ class Level {
     this.entity_instances = ei;
     this.triggers = tr;
     this.tiles = ti;
+    this.invisible_walls = iw;
   }
 }
 
@@ -1034,6 +1035,7 @@ async function main() {
     const entity_instances = [];
     const triggers = [];
     const tiles = [];
+    const invisible_walls = [];
     for (const layer of level.layerInstances) {
       for (const tile of layer.gridTiles) {
         tiles.push(tile);
@@ -1044,13 +1046,16 @@ async function main() {
           entity.__worldX,
           entity.__worldY,
           entity_data[entity.__identifier]);
-        if (entity.__identifier !== "Trigger") {
+        if (entity.__identifier !== "Trigger" && entity.__identifier !== "InvisibleWall") {
           entity_instances.push(inst);
         }
         if (entity.__identifier === "Player") {
           console.assert(!player);
           player = inst;
           g_level_name = level.identifier;
+        }
+        if (entity.__identifier === "InvisibleWall") {
+          invisible_walls.push(new Rect(entity.__worldX, entity.__worldY, entity.width, entity.height));
         }
         if (entity.__identifier === "Trigger") {
           triggers.push(inst);
@@ -1100,7 +1105,7 @@ async function main() {
         }
       }
     }
-    const new_level = new Level(level.worldX, level.worldY, level.pxWid, level.pxHei, entity_instances, triggers, tiles);
+    const new_level = new Level(level.worldX, level.worldY, level.pxWid, level.pxHei, entity_instances, triggers, tiles, invisible_walls);
     const fields = makeObjectFromFieldInstances(level.fieldInstances);
     Object.assign(new_level, fields);
     g_levels[level.identifier] = new_level;
@@ -1304,6 +1309,11 @@ function update(dt) {
         player.x = oldPlayerX + rectCopy.xDistTo(entity.rect, 1e-12);
       }
     }
+    for (const wall of g_level.invisible_walls) {
+      if (player.rect.test(wall)) {
+        player.x = oldPlayerX + rectCopy.xDistTo(wall, 1e-12);
+      }
+    }
 
     player.y += dy;
     for (const entity of g_level.entity_instances) {
@@ -1311,6 +1321,11 @@ function update(dt) {
       if (entity.identifier === "Player") continue;
       if (player.rect.test(entity.rect)) {
         player.y = oldPlayerY + rectCopy.yDistTo(entity.rect, 1e-12);
+      }
+    }
+    for (const wall of g_level.invisible_walls) {
+      if (player.rect.test(wall)) {
+        player.y = oldPlayerY + rectCopy.yDistTo(wall, 1e-12);
       }
     }
   }

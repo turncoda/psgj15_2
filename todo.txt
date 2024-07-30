@@ -1,21 +1,17 @@
 - targeted entity indicator
+- die after staying in sunlight too long
 - inventory ui
+- quest: merchant
+  - stone mask
+- quest: farmer
+  - water his plants
+- quest: well
+  - philosopher's stone
 - sound effects
+- render order
 - design doc
 
-
-
-- die after staying in sunlight too long
-- invisible collision box
-
-- render order
-
-- farmer quest
-  - water his plants
-  - he gives you access to his shed
-  - shed has place to sleep
-  - shed has a BeetRoot
-  - shed has a pile of rope
+EXTRA
 
 - player dash trail (cyan after image)
 - animated effect for regaining dash ability
