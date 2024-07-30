@@ -1315,6 +1315,16 @@ function update(dt) {
     }
   }
 
+  // limit player to play area
+  {
+    const box = player.data.lsBox;
+    player.x = Math.max(g_level.x, player.x + box.x) - box.x;
+    player.y = Math.max(g_level.y, player.y + box.y) - box.y;
+    player.x = Math.min(g_level.x + g_level.w - box.w, player.x + box.x) - box.x;
+    player.y = Math.min(g_level.y + g_level.h - box.h, player.y + box.y) - box.y;
+  }
+
+
   // trigger detection
   for (const trigger of g_level.triggers) {
     if (!trigger.trigger_is_active) continue;
