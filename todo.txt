@@ -1,6 +1,8 @@
-- limit player and camera to play area
+- limit player to play area
 - targeted entity indicator
 - inventory ui
+- sound effects
+- design doc
 
 
 

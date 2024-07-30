@@ -74,7 +74,7 @@ let player_is_dashing = false;
 let is_debug_vis = false;
 let is_paused = false;
 let is_frozen = false;
-let is_night = false;
+let is_night = true;
 
 function hideText() {
   interact_text_box.visible = false;
@@ -1681,10 +1681,16 @@ function render() {
 }
 
 function getCameraPosition() {
-  return [
-    Math.round(player.x) + 3 * TILE_SIZE - 0.5 * SCREEN_WIDTH,
-    Math.round(player.y) - 0.5 * SCREEN_HEIGHT,
-  ];
+  let cx = Math.round(player.x) + 3 * TILE_SIZE - 0.5 * SCREEN_WIDTH;
+  let cy = Math.round(player.y) - 0.5 * SCREEN_HEIGHT;
+
+  cx = Math.max(g_level.x, cx);
+  cy = Math.max(g_level.y, cy);
+
+  cx = Math.min(g_level.x + g_level.w - SCREEN_WIDTH, cx);
+  cy = Math.min(g_level.y + g_level.h - SCREEN_HEIGHT, cy);
+
+  return [ cx, cy ];
 }
 
 function scalePoint(x, y, origin_x, origin_y, scale) {
