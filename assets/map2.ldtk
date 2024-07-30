@@ -11,7 +11,7 @@
 	"iid": "d4df22c0-25d0-11ef-9603-e7bd71eace22",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 86,
+	"nextUid": 87,
 	"identifierStyle": "Capitalize",
 	"toc": [],
 	"worldLayout": "Free",
@@ -977,6 +977,46 @@
 					"regex": null,
 					"acceptFileTypes": null,
 					"defaultOverride": null,
+					"textLanguageMode": null,
+					"symmetricalRef": false,
+					"autoChainRef": true,
+					"allowOutOfLevelRef": true,
+					"allowedRefs": "OnlySame",
+					"allowedRefsEntityUid": null,
+					"allowedRefTags": [],
+					"tilesetUid": null
+				},
+				{
+					"identifier": "night_only",
+					"doc": null,
+					"__type": "Bool",
+					"uid": 86,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayScale": 1,
+					"editorDisplayPos": "Above",
+					"editorLinkStyle": "StraightArrow",
+					"editorDisplayColor": null,
+					"editorAlwaysShow": false,
+					"editorShowInWorld": true,
+					"editorCutLongValues": true,
+					"editorTextSuffix": null,
+					"editorTextPrefix": null,
+					"useForSmartColor": false,
+					"exportToToc": false,
+					"searchable": false,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": {
+						"id": "V_Bool",
+						"params": [ true ]
+					},
 					"textLanguageMode": null,
 					"symmetricalRef": false,
 					"autoChainRef": true,
@@ -4204,7 +4244,7 @@
 						},
 						{
 							"__identifier": "Gravedigger",
-							"__grid": [19,1],
+							"__grid": [24,15],
 							"__pivot": [0,0],
 							"__tags": ["static"],
 							"__tile": { "tilesetUid": 1, "x": 16, "y": 1360, "w": 32, "h": 32 },
@@ -4213,7 +4253,7 @@
 							"width": 32,
 							"height": 32,
 							"defUid": 56,
-							"px": [318,20],
+							"px": [398,244],
 							"fieldInstances": [
 								{ "__identifier": "script", "__type": "Array<String>", "__value": [
 									"What, you want to get in the graveyard too?",
@@ -4243,10 +4283,14 @@
 								{ "__identifier": "trigger_item", "__type": "String", "__value": "Coin", "__tile": null, "defUid": 60, "realEditorValues": [{
 									"id": "V_String",
 									"params": ["Coin"]
+								}] },
+								{ "__identifier": "night_only", "__type": "Bool", "__value": true, "__tile": null, "defUid": 86, "realEditorValues": [{
+									"id": "V_Bool",
+									"params": [ true ]
 								}] }
 							],
-							"__worldX": 192,
-							"__worldY": -347
+							"__worldX": 272,
+							"__worldY": -123
 						},
 						{
 							"__identifier": "Gravestone",

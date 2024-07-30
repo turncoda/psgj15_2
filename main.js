@@ -275,6 +275,12 @@ class Entity {
     this._frameIndex = 0;
     this._interactCount = 0;
   }
+  isThere() {
+    if (!this.night_only && !this.day_only) return true;
+    if (this.night_only && is_night) return true;
+    if (this.day_only && !is_night) return true;
+    return false;
+  }
   setInteract(f) {
     this._interact = f;
   }
@@ -1043,6 +1049,12 @@ async function main() {
           });
         } else { // not trigger
           const fields = makeObjectFromFieldInstances(entity.fieldInstances);
+          if (fields && fields.night_only) {
+            inst.night_only = true;
+          }
+          if (fields && fields.day_only) {
+            inst.day_only = true;
+          }
           if (fields && fields.script && fields.script.length > 0) {
             inst.setInteract((self, item) => {
               if (item && item.identifier === fields.trigger_item) {
@@ -1173,6 +1185,7 @@ function update(dt) {
     if (!targeted_entity) {
       for (const entity of g_level.entity_instances) {
         if (player === entity) continue;
+        if (!entity.isThere()) continue;
         if (!entity.canInteract()) continue;
         if (!entity.rect) continue;
         const [x2, y2] = entity.rect.centroid();
@@ -1258,6 +1271,7 @@ function update(dt) {
 
     player.x += dx;
     for (const entity of g_level.entity_instances) {
+      if (!entity.isThere()) continue;
       if (entity.identifier === "Player") continue;
       if (player.rect.test(entity.rect)) {
         player.x = oldPlayerX + rectCopy.xDistTo(entity.rect, 1e-12);
@@ -1266,6 +1280,7 @@ function update(dt) {
 
     player.y += dy;
     for (const entity of g_level.entity_instances) {
+      if (!entity.isThere()) continue;
       if (entity.identifier === "Player") continue;
       if (player.rect.test(entity.rect)) {
         player.y = oldPlayerY + rectCopy.yDistTo(entity.rect, 1e-12);
@@ -1287,6 +1302,7 @@ function update(dt) {
     forEachPair(player_light_sensors, (x, y) => {
       const point = new SAT.Vector(player.x + x, player.y + y);
       for (const entity of g_level.entity_instances) {
+        if (!entity.isThere()) continue;
         if (entity.identifier === "Player") continue;
         const polygon = entity.shadowPolygon;
         if (!polygon) continue;
@@ -1332,6 +1348,7 @@ function render() {
     gl.uniform2f(u_cameraPos, (cx), (cy));
 
     for (const entity of g_level.entity_instances) {
+      if (!entity.isThere()) continue;
       const base = Object.assign({}, entity.data.lsBox);
       base.x += entity.x;
       base.y += entity.y;
@@ -1366,6 +1383,7 @@ function render() {
 
       // subtract entities
       for (const entity of g_level.entity_instances) {
+        if (!entity.isThere()) continue;
         if (entity.identifier === "Player") continue;
         const rect = entity.data.getStaticFrame().srcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
@@ -1379,6 +1397,7 @@ function render() {
 
       // add entity self-shadow
       for (const entity of g_level.entity_instances) {
+        if (!entity.isThere()) continue;
         const frame = entity.data.getStaticFrame();
         const rect = frame.ssSrcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
@@ -1445,6 +1464,7 @@ function render() {
       gl.uniform2f(u_cameraPos, (cx), (cy));
 
       for (const entity of g_level.entity_instances) {
+        if (!entity.isThere()) continue;
         const rect = entity.getFrame().srcRect;
         gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
         gl.uniform4f(u_dstRect, Math.round(entity.x), Math.round(entity.y), rect.w, rect.h);
@@ -1533,6 +1553,7 @@ function render() {
       gl.uniform2f(u_scale, 1, 1);
 
       for (const entity of g_level.entity_instances) {
+        if (!entity.isThere()) continue;
         // --- draw bounding polygon ---
         gl.uniform3f(u_debugColor, 1, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, entity.data.bounding_polygon_buffer);
@@ -1556,6 +1577,7 @@ function render() {
       gl.uniform3f(u_debugColor, 0, 1, 1);
 
       for (const entity of g_level.entity_instances) {
+        if (!entity.isThere()) continue;
         gl.uniform2f(u_scale, entity.rect.w, entity.rect.h);
         gl.uniform2f(u_worldPos, entity.rect.x, entity.rect.y);
         gl.drawArrays(gl.LINE_STRIP, 0, buffer_debug_length);

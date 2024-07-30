@@ -5,13 +5,17 @@
 - render order
 - limit player and camera to play area
 
-- do level design
+- farmer quest
+  - water his plants
+  - he gives you access to his shed
+  - shed has place to sleep
+  - shed has a BeetRoot
+  - shed has a pile of rope
 
 - player dash trail (cyan after image)
 - animated effect for regaining dash ability
 - aura for having dash ready
 - render intersection of player silhouette and self-shadow to shadow map first
-- explore quantizing position to animation framerate
 - add light sensor to ui
 - bonus: become vampire cutscene
 - bonus: player has no shadow
