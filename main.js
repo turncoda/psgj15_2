@@ -320,6 +320,10 @@ class Entity {
           player_inventory.splice(player_inventory_index, 1);
           player_inventory_index = -1;
         }
+      case "sleep":
+        return () => {
+          is_night = !is_night;
+        }
       default:
         console.warn("unhandled command:", tokens[0]);
         return () => {};
@@ -878,6 +882,26 @@ async function main() {
     6, 5,
     6, 2,
     4, 0,
+  ];
+
+  entity_data["HayPile"].base_rect = new Rect(0, 0, 3, 2);
+  entity_data["HayPile"].bounding_polygon = [
+    0, 0,
+    0, 1,
+    1, 2,
+    3, 2,
+    3, 1,
+    2, 0,
+  ];
+
+  entity_data["Shed"].base_rect = new Rect(0, 0, 2, 2);
+  entity_data["Shed"].bounding_polygon = [
+    0, 0,
+    0, 2,
+    1, 3,
+    3, 4,
+    3, 1,
+    2, 0,
   ];
 
   entity_data["Well"].base_rect = new Rect(0.5, 0.5, 1, 1);

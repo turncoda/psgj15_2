@@ -1,4 +1,3 @@
-- command: change time of day
 - die after staying in sunlight too long
 - targeted entity indicator
 - invisible collision box
