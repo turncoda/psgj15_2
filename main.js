@@ -797,6 +797,16 @@ async function main() {
     1, 0,
   ];
 
+  entity_data["Kid"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["Kid"].bounding_polygon = [
+    0, 0,
+    0, 1,
+    1, 2,
+    2, 2,
+    2, 1,
+    1, 0,
+  ];
+
   entity_data["Farmer"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["Farmer"].bounding_polygon = [
     0, 0,
