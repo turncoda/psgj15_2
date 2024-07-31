@@ -81,7 +81,7 @@ let player_is_dashing = false;
 let is_debug_vis = false;
 let is_paused = false;
 let is_frozen = false;
-let is_night = true;
+let is_night = false;
 let is_plant_watered = false;
 let is_player_upgraded = false;
 
@@ -310,11 +310,18 @@ class Entity {
       const farmer = findEntity("Farmer");
       if (farmer) {
         farmer.setInteract((self) => {
-          self.queueScript([
-            "Whoa, my plant looks way healthier!",
-            "Whatever you did, you have my gratitude.",
-            "Here, take this key to my shed. Help yourself to whatever's in there.#give ShedKey",
-          ]);
+          if (!self.gaveShedKey) {
+            self.queueScript([
+              "Whoa, my plant looks way healthier!",
+              "Whatever you did, you have my gratitude.",
+              "Here, take this key to my shed. Help yourself to whatever's in there.#give ShedKey",
+            ]);
+            self.gaveShedKey = true;
+          } else {
+            self.queueScript([
+              "Have you checked out my shed?",
+            ]);
+          }
         });
       }
     }
@@ -1065,10 +1072,18 @@ async function main() {
     "Mask",
     "RedStone",
     "Spoon",
+    "EmptyCan",
+    "IronPowder",
+    "BeetJuice",
+    "LifeElixir",
+    "MortarAndPestle",
   ]) {
     entity_data[item_name].base_rect = new Rect(.25, .25, .5, .5);
     entity_data[item_name].no_shadow = true;
   }
+
+  player_inventory.push(entity_data["Rope"].makeInstance());
+  player_inventory.push(entity_data["Rope"].makeInstance());
 
   entity_data["OpenMine"].no_shadow = true;
   entity_data["ClosedMine"].no_shadow = true;
@@ -1231,6 +1246,9 @@ async function main() {
               }
             });
           }
+        }
+        if (entity.__identifier === "RedStone") {
+          standardizeItem(inst);
         }
       }
     }
@@ -2030,6 +2048,12 @@ function dropItem() {
   item.x = player.x;
   item.y = player.y;
   g_level.entity_instances.push(item);
+  standardizeItem(item);
+  func_queue.push(makeFuncShowText(`Dropped ${item.identifier}`));
+  func_queue.push(hideText);
+}
+
+function standardizeItem(item) {
   const standard_procedure = (self) => {
     self.queueScript([
       `Picked up ${self.identifier}#give ${self.identifier}`,
@@ -2037,6 +2061,31 @@ function dropItem() {
     ]);
   };
   switch (item.identifier) {
+    case "LifeElixir":
+    item.setInteract((self) => {
+      self.queueScript([
+        "You drink the LifeElixir.#selfdestruct",
+        "It tastes pretty gross.",
+        "You feel like you're probably not a vampire anymore.",
+        "Congratulations!",
+      ]);
+    });
+    break;
+    case "BeetJuice":
+    item.setInteract((self, other) => {
+      if (!other) {
+        standard_procedure(self);
+      } else if (other.identifier === "IronPowder") {
+        self.queueScript([
+          "You add the IronPowder to the BeetJuice.#take",
+          "It becomes LifeElixir!#give LifeElixir",
+          "#selfdestruct",
+        ]);
+      } else {
+        standard_procedure(self);
+      }
+    });
+    break;
     case "Mask":
     item.setInteract((self, other) => {
       if (!other) {
@@ -2056,9 +2105,9 @@ function dropItem() {
     item.setInteract((self, other) => {
       if (!other) {
         standard_procedure(self);
-      } else if (other.identifier === "Spoon") {
+      } else if (other.identifier === "Spoon" || other.identifier === "EmptyCan") {
         self.queueScript([
-          "You touch the RedStone with a Spoon. The Spoon suddenly turns into a gold Coin.#give Coin",
+          `You touch the RedStone with a ${other.identifier}. The ${other.identifier} suddenly turns into a gold Coin.#give Coin`,
           "#take",
         ]);
       } else {
@@ -2072,6 +2121,4 @@ function dropItem() {
     item.setInteract(standard_procedure);
     break;
   }
-  func_queue.push(makeFuncShowText(`Dropped ${item.identifier}`));
-  func_queue.push(hideText);
 }
