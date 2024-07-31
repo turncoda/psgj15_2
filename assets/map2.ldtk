@@ -11,7 +11,7 @@
 	"iid": "d4df22c0-25d0-11ef-9603-e7bd71eace22",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 207,
+	"nextUid": 208,
 	"identifierStyle": "Capitalize",
 	"toc": [],
 	"worldLayout": "Free",
@@ -33,7 +33,7 @@
 	"imageExportMode": "None",
 	"exportLevelBg": true,
 	"pngFilePattern": null,
-	"backupOnSave": false,
+	"backupOnSave": true,
 	"backupLimit": 10,
 	"backupRelPath": null,
 	"levelNamePattern": "Level_%idx",
@@ -992,6 +992,43 @@
 					"type": "F_String",
 					"isArray": false,
 					"canBeNull": true,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "Hidden",
+					"editorDisplayScale": 1,
+					"editorDisplayPos": "Above",
+					"editorLinkStyle": "StraightArrow",
+					"editorDisplayColor": null,
+					"editorAlwaysShow": false,
+					"editorShowInWorld": true,
+					"editorCutLongValues": true,
+					"editorTextSuffix": null,
+					"editorTextPrefix": null,
+					"useForSmartColor": false,
+					"exportToToc": false,
+					"searchable": false,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
+					"textLanguageMode": null,
+					"symmetricalRef": false,
+					"autoChainRef": true,
+					"allowOutOfLevelRef": true,
+					"allowedRefs": "OnlySame",
+					"allowedRefsEntityUid": null,
+					"allowedRefTags": [],
+					"tilesetUid": null
+				},
+				{
+					"identifier": "day_only",
+					"doc": null,
+					"__type": "Bool",
+					"uid": 207,
+					"type": "F_Bool",
+					"isArray": false,
+					"canBeNull": false,
 					"arrayMinLength": null,
 					"arrayMaxLength": null,
 					"editorDisplayMode": "Hidden",
@@ -6899,10 +6936,16 @@
 							"defUid": 8,
 							"px": [288,128],
 							"fieldInstances": [
-								{ "__identifier": "script", "__type": "Array<String>", "__value": ["It's an old abandoned well with a roof over it."], "__tile": null, "defUid": 185, "realEditorValues": [{
+								{ "__identifier": "script", "__type": "Array<String>", "__value": [
+									"It's an old abandoned well with a roof over it.",
+									"If you had a Rope you might be able to climb down it."
+								], "__tile": null, "defUid": 185, "realEditorValues": [ {
 									"id": "V_String",
 									"params": ["It's an old abandoned well with a roof over it."]
-								}] },
+								}, {
+									"id": "V_String",
+									"params": ["If you had a Rope you might be able to climb down it."]
+								} ] },
 								{ "__identifier": "script_item", "__type": "Array<String>", "__value": [
 									"You tie one end of the rope securely to the roof and drop the other end into the well.",
 									"You take a deep breath and climb down.",
@@ -7496,13 +7539,19 @@
 							"px": [224,336],
 							"fieldInstances": [
 								{ "__identifier": "script", "__type": "Array<String>", "__value": [
-									"Oh, right. The one good thing about being a vampire is that you can press spacebar to ~shadow walk~. It's useful for darting from one shadow to another. Try it out!"
-								], "__tile": null, "defUid": 42, "realEditorValues": [{
+									"You figure you'll be collecting a bunch of items on this adventure. Press Q to cycle through your inventory.",
+									"One last thing... the one good thing about being a vampire is that you can press spacebar to ~shadow walk~. It's useful for darting from one shadow to another. Try it out!"
+								], "__tile": null, "defUid": 42, "realEditorValues": [ {
 									"id": "V_String",
 									"params": [
-										"Oh, right. The one good thing about being a vampire is that you can press spacebar to ~shadow walk~. It's useful for darting from one shadow to another. Try it out!"
+										"You figure you'll be collecting a bunch of items on this adventure. Press Q to cycle through your inventory."
 									]
-								}] },
+								}, {
+									"id": "V_String",
+									"params": [
+										"One last thing... the one good thing about being a vampire is that you can press spacebar to ~shadow walk~. It's useful for darting from one shadow to another. Try it out!"
+									]
+								} ] },
 								{ "__identifier": "oneTimeUse", "__type": "Bool", "__value": true, "__tile": null, "defUid": 43, "realEditorValues": [{
 									"id": "V_Bool",
 									"params": [ true ]
@@ -10534,9 +10583,16 @@
 							"defUid": 101,
 							"px": [91,136],
 							"fieldInstances": [
-								{ "__identifier": "script", "__type": "Array<String>", "__value": [ "Picked up Rope#give Rope", "#selfdestruct" ], "__tile": null, "defUid": 102, "realEditorValues": [ {
+								{ "__identifier": "script", "__type": "Array<String>", "__value": [
+									"Picked up Rope#give Rope",
+									"This might be good for climbing down a well.",
+									"#selfdestruct"
+								], "__tile": null, "defUid": 102, "realEditorValues": [ {
 									"id": "V_String",
 									"params": ["Picked up Rope#give Rope"]
+								}, {
+									"id": "V_String",
+									"params": ["This might be good for climbing down a well."]
 								}, {
 									"id": "V_String",
 									"params": ["#selfdestruct"]
@@ -11006,10 +11062,16 @@
 							"defUid": 121,
 							"px": [93,175],
 							"fieldInstances": [
-								{ "__identifier": "script", "__type": "Array<String>", "__value": ["A scary-looking mask with a stone-shaped socket on its forehead."], "__tile": null, "defUid": 122, "realEditorValues": [{
+								{ "__identifier": "script", "__type": "Array<String>", "__value": [
+									"A scary-looking mask with a stone-shaped socket on its forehead.",
+									"Equip a Coin and interact to buy."
+								], "__tile": null, "defUid": 122, "realEditorValues": [ {
 									"id": "V_String",
 									"params": ["A scary-looking mask with a stone-shaped socket on its forehead."]
-								}] },
+								}, {
+									"id": "V_String",
+									"params": ["Equip a Coin and interact to buy."]
+								} ] },
 								{ "__identifier": "script2", "__type": "Array<String>", "__value": ["Reminds you of an anime you watched one time."], "__tile": null, "defUid": 123, "realEditorValues": [{
 									"id": "V_String",
 									"params": ["Reminds you of an anime you watched one time."]
@@ -11057,7 +11119,7 @@
 						},
 						{
 							"__identifier": "NoSprite",
-							"__grid": [12,11],
+							"__grid": [13,13],
 							"__pivot": [0,0],
 							"__tags": ["static"],
 							"__tile": { "tilesetUid": 1, "x": 16, "y": 2320, "w": 16, "h": 16 },
@@ -11066,7 +11128,7 @@
 							"width": 16,
 							"height": 16,
 							"defUid": 87,
-							"px": [200,183],
+							"px": [208,208],
 							"fieldInstances": [
 								{ "__identifier": "script", "__type": "Array<String>", "__value": ["The town fountain."], "__tile": null, "defUid": 88, "realEditorValues": [{
 									"id": "V_String",
@@ -11085,8 +11147,8 @@
 									"params": ["EmptyBucket"]
 								}] }
 							],
-							"__worldX": 362,
-							"__worldY": 696
+							"__worldX": 370,
+							"__worldY": 721
 						},
 						{
 							"__identifier": "Woman",
@@ -11153,10 +11215,13 @@
 							"defUid": 197,
 							"px": [112,176],
 							"fieldInstances": [
-								{ "__identifier": "script", "__type": "Array<String>", "__value": ["A big ol' BeetRoot."], "__tile": null, "defUid": 198, "realEditorValues": [{
+								{ "__identifier": "script", "__type": "Array<String>", "__value": [ "A big ol' BeetRoot.", "Equip a Coin and interact to buy." ], "__tile": null, "defUid": 198, "realEditorValues": [ {
 									"id": "V_String",
 									"params": ["A big ol' BeetRoot."]
-								}] },
+								}, {
+									"id": "V_String",
+									"params": ["Equip a Coin and interact to buy."]
+								} ] },
 								{ "__identifier": "script2", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 199, "realEditorValues": [] },
 								{ "__identifier": "script_item", "__type": "Array<String>", "__value": [ "Bought the BeetRoot#give BeetRoot", "You hand over a Coin.#take", "#selfdestruct" ], "__tile": null, "defUid": 200, "realEditorValues": [ {
 									"id": "V_String",
@@ -11171,9 +11236,35 @@
 								{ "__identifier": "trigger_item", "__type": "String", "__value": "Coin", "__tile": null, "defUid": 201, "realEditorValues": [{
 									"id": "V_String",
 									"params": ["Coin"]
+								}] },
+								{ "__identifier": "day_only", "__type": "Bool", "__value": true, "__tile": null, "defUid": 207, "realEditorValues": [{
+									"id": "V_Bool",
+									"params": [ true ]
 								}] }
 							],
 							"__worldX": 274,
+							"__worldY": 689
+						},
+						{
+							"__identifier": "BeetRoot",
+							"__grid": [25,11],
+							"__pivot": [0,0],
+							"__tags": ["static"],
+							"__tile": { "tilesetUid": 1, "x": 16, "y": 544, "w": 16, "h": 16 },
+							"__smartColor": "#BE4A2F",
+							"iid": "252fff20-4ce0-11ef-b283-195a1b0e9f44",
+							"width": 16,
+							"height": 16,
+							"defUid": 197,
+							"px": [400,176],
+							"fieldInstances": [
+								{ "__identifier": "script", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 198, "realEditorValues": [] },
+								{ "__identifier": "script2", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 199, "realEditorValues": [] },
+								{ "__identifier": "script_item", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 200, "realEditorValues": [] },
+								{ "__identifier": "trigger_item", "__type": "String", "__value": null, "__tile": null, "defUid": 201, "realEditorValues": [] },
+								{ "__identifier": "day_only", "__type": "Bool", "__value": false, "__tile": null, "defUid": 207, "realEditorValues": [] }
+							],
+							"__worldX": 562,
 							"__worldY": 689
 						}
 					]
@@ -11204,19 +11295,19 @@
 					"entityInstances": [
 						{
 							"__identifier": "InvisibleWall",
-							"__grid": [11,11],
+							"__grid": [11,14],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": null,
 							"__smartColor": "#FEE761",
 							"iid": "455dc190-4ce0-11ef-af61-696711005baa",
 							"width": 64,
-							"height": 64,
+							"height": 16,
 							"defUid": 107,
-							"px": [176,176],
+							"px": [176,224],
 							"fieldInstances": [],
 							"__worldX": 338,
-							"__worldY": 689
+							"__worldY": 737
 						},
 						{
 							"__identifier": "Tent",
@@ -11274,7 +11365,7 @@
 						},
 						{
 							"__identifier": "House",
-							"__grid": [14,18],
+							"__grid": [13,19],
 							"__pivot": [0,0],
 							"__tags": ["static"],
 							"__tile": { "tilesetUid": 1, "x": 16, "y": 112, "w": 96, "h": 96 },
@@ -11283,10 +11374,10 @@
 							"width": 96,
 							"height": 96,
 							"defUid": 6,
-							"px": [236,294],
+							"px": [220,310],
 							"fieldInstances": [],
-							"__worldX": 398,
-							"__worldY": 807
+							"__worldX": 382,
+							"__worldY": 823
 						},
 						{
 							"__identifier": "Merchant",
@@ -11302,14 +11393,14 @@
 							"px": [94,146],
 							"fieldInstances": [
 								{ "__identifier": "script", "__type": "Array<String>", "__value": [
-									"Feel free to browse my wares.",
-									"Everything's on sale for the low price of one Coin each! What a deal!"
+									"Hello! I am a traveling merchant.",
+									"Everything's on sale for the low price of one Coin each!"
 								], "__tile": null, "defUid": 113, "realEditorValues": [ {
 									"id": "V_String",
-									"params": ["Feel free to browse my wares."]
+									"params": ["Hello! I am a traveling merchant."]
 								}, {
 									"id": "V_String",
-									"params": ["Everything's on sale for the low price of one Coin each! What a deal!"]
+									"params": ["Everything's on sale for the low price of one Coin each!"]
 								} ] },
 								{ "__identifier": "script2", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 114, "realEditorValues": [] },
 								{ "__identifier": "script_item", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 115, "realEditorValues": [] },
@@ -11504,25 +11595,6 @@
 							"__worldY": 829
 						},
 						{
-							"__identifier": "HorizontalFence",
-							"__grid": [18,10],
-							"__pivot": [0,0],
-							"__tags": ["static"],
-							"__tile": { "tilesetUid": 1, "x": 16, "y": 976, "w": 128, "h": 32 },
-							"__smartColor": "#BE4A2F",
-							"iid": "e3837c10-4ce0-11ef-af61-275bae9f608a",
-							"width": 128,
-							"height": 32,
-							"defUid": 47,
-							"px": [296,170],
-							"fieldInstances": [
-								{ "__identifier": "script", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 48, "realEditorValues": [] },
-								{ "__identifier": "script2", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 49, "realEditorValues": [] }
-							],
-							"__worldX": 458,
-							"__worldY": 683
-						},
-						{
 							"__identifier": "VerticalFence",
 							"__grid": [9,-3],
 							"__pivot": [0,0],
@@ -11654,6 +11726,95 @@
 							"fieldInstances": [],
 							"__worldX": 435,
 							"__worldY": 547
+						},
+						{
+							"__identifier": "InvisibleWall",
+							"__grid": [11,11],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#FEE761",
+							"iid": "170d11d0-4ce0-11ef-b283-7772d7030310",
+							"width": 48,
+							"height": 48,
+							"defUid": 107,
+							"px": [176,176],
+							"fieldInstances": [],
+							"__worldX": 338,
+							"__worldY": 689
+						},
+						{
+							"__identifier": "InvisibleWall",
+							"__grid": [14,11],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#FEE761",
+							"iid": "19650b90-4ce0-11ef-b283-5d4f295f6751",
+							"width": 16,
+							"height": 32,
+							"defUid": 107,
+							"px": [224,176],
+							"fieldInstances": [],
+							"__worldX": 386,
+							"__worldY": 689
+						},
+						{
+							"__identifier": "HorizontalFence",
+							"__grid": [0,7],
+							"__pivot": [0,0],
+							"__tags": ["static"],
+							"__tile": { "tilesetUid": 1, "x": 16, "y": 976, "w": 128, "h": 32 },
+							"__smartColor": "#BE4A2F",
+							"iid": "804b0e40-4ce0-11ef-b283-11c3281f9075",
+							"width": 128,
+							"height": 32,
+							"defUid": 47,
+							"px": [1,117],
+							"fieldInstances": [
+								{ "__identifier": "script", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 48, "realEditorValues": [] },
+								{ "__identifier": "script2", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 49, "realEditorValues": [] }
+							],
+							"__worldX": 163,
+							"__worldY": 630
+						},
+						{
+							"__identifier": "HorizontalFence",
+							"__grid": [17,10],
+							"__pivot": [0,0],
+							"__tags": ["static"],
+							"__tile": { "tilesetUid": 1, "x": 16, "y": 976, "w": 128, "h": 32 },
+							"__smartColor": "#BE4A2F",
+							"iid": "847ea5d0-4ce0-11ef-b283-79ee0dc0fce9",
+							"width": 128,
+							"height": 32,
+							"defUid": 47,
+							"px": [286,167],
+							"fieldInstances": [
+								{ "__identifier": "script", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 48, "realEditorValues": [] },
+								{ "__identifier": "script2", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 49, "realEditorValues": [] }
+							],
+							"__worldX": 448,
+							"__worldY": 680
+						},
+						{
+							"__identifier": "HorizontalFence",
+							"__grid": [0,21],
+							"__pivot": [0,0],
+							"__tags": ["static"],
+							"__tile": { "tilesetUid": 1, "x": 16, "y": 976, "w": 128, "h": 32 },
+							"__smartColor": "#BE4A2F",
+							"iid": "90ee8bf0-4ce0-11ef-b283-0f073db0b4a6",
+							"width": 128,
+							"height": 32,
+							"defUid": 47,
+							"px": [11,349],
+							"fieldInstances": [
+								{ "__identifier": "script", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 48, "realEditorValues": [] },
+								{ "__identifier": "script2", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 49, "realEditorValues": [] }
+							],
+							"__worldX": 173,
+							"__worldY": 862
 						}
 					]
 				},
@@ -12045,7 +12206,7 @@
 						{ "px": [176,208], "src": [16,704], "f": 0, "t": 1409, "d": [362], "a": 1 },
 						{ "px": [192,208], "src": [16,672], "f": 0, "t": 1345, "d": [363], "a": 1 },
 						{ "px": [208,208], "src": [16,672], "f": 0, "t": 1345, "d": [364], "a": 1 },
-						{ "px": [224,208], "src": [16,704], "f": 0, "t": 1409, "d": [365], "a": 1 },
+						{ "px": [224,208], "src": [16,736], "f": 0, "t": 1473, "d": [365], "a": 1 },
 						{ "px": [240,208], "src": [16,608], "f": 0, "t": 1217, "d": [366], "a": 1 },
 						{ "px": [256,208], "src": [16,736], "f": 0, "t": 1473, "d": [367], "a": 1 },
 						{ "px": [272,208], "src": [16,640], "f": 0, "t": 1281, "d": [368], "a": 1 },

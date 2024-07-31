@@ -78,12 +78,20 @@ let is_pressed_dash = false;
 let is_pressed_interact = false;
 let try_interact = false;
 let player_is_dashing = false;
+let player_was_dashing = false;
 let is_debug_vis = false;
 let is_paused = false;
 let is_frozen = false;
-let is_night = false;
+let is_night = true;
 let is_plant_watered = false;
 let is_player_upgraded = false;
+
+const sfx_pickup = new Howl({ src: [ "assets/pickup1.wav" ] });
+sfx_pickup.volume(0.7);
+const sfx_select = new Howl({ src: [ "assets/select1.wav" ] });
+sfx_select.volume(0.5);
+const sfx_synth = new Howl({ src: [ "assets/synth4.wav" ] });
+sfx_synth.volume(0.5);
 
 function hideText() {
   interact_text_box.visible = false;
@@ -353,6 +361,7 @@ class Entity {
           const name = tokens[1];
           const item = entity_data[name].makeInstance();
           player_inventory.push(item);
+          sfx_pickup.play();
         };
       case "take":
         return () => {
@@ -1348,6 +1357,18 @@ function update(dt) {
   // if queue still has stuff, skip rest of update()
   if (func_queue.length > 0) {
     return;
+  }
+
+  if (player_is_dashing !== player_was_dashing) {
+    player_was_dashing = player_is_dashing;
+    if (player_is_dashing) {
+      sfx_synth.stop();
+      sfx_synth.volume(.5);
+      sfx_synth.play();
+      console.log("play");
+    } else {
+      sfx_synth.fade(.5, 0, 200);
+    }
   }
 
   // advance animated sprite timers
