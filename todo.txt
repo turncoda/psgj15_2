@@ -1,4 +1,3 @@
-- inventory ui
 - quest: merchant
   - stone mask
 - quest: farmer

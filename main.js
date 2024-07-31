@@ -68,6 +68,7 @@ const PLAYER_DASH_MAX_DURATION = 500;
 let targeted_entity;
 let checkpoint_x;
 let checkpoint_y;
+let checkpoint_level_name;
 const func_queue = [];
 let is_pressed_up = false;
 let is_pressed_left = false;
@@ -313,17 +314,7 @@ class Entity {
         };
       case "warp":
         return () => {
-          // remove player from current level
-          const i = g_level.entity_instances.indexOf(player);
-          if (i >= 0) g_level.entity_instances.splice(i, 1);
-          // set current level
-          g_level_name = tokens[1];
-          g_level = g_levels[g_level_name];
-          // add player to current level
-          g_level.entity_instances.push(player);
-          // set player coordinates
-          player.x = parseInt(tokens[2]);
-          player.y = parseInt(tokens[3]);
+          warp(tokens[1], parseInt(tokens[2]), parseInt(tokens[3]));
         };
       case "give":
         return () => {
@@ -814,6 +805,9 @@ async function main() {
 
   indicator = new AnimatedSprite(entity_data["Indicator"].animations["Static"]["Down"]);
   animated_sprites.push(indicator);
+  const inventory_box = new AnimatedSprite(entity_data["InventoryBox"].animations["Static"]["Down"]);
+  inventory_box.setPos(SCREEN_WIDTH - 3 * TILE_SIZE, SCREEN_HEIGHT - 3 * TILE_SIZE);
+  animated_sprites.push(inventory_box);
 
 
   entity_data["Clothesline"].base_rect = new Rect(0.5, 0.5, 3, 0);
@@ -1426,30 +1420,31 @@ function update(dt) {
     });
     player_shadow_level = shadow_level;
   }
+  if (is_night) {
+    player_shadow_level = player_light_sensors.length / 2.0;
+  }
+  if (g_level.is_indoors) {
+    player_shadow_level = player_light_sensors.length / 2.0;
+  }
+
+  // if shadow level is at max, set checkpoint
+  if (player_shadow_level === player_light_sensors.length / 2) {
+    checkpoint_x = player.x;
+    checkpoint_y = player.y;
+    checkpoint_level_name = g_level_name;
+  }
   if (player_shadow_level === 0 && !player_is_dashing) {
     player_light_level += dt;
   }
   if (player_shadow_level > 0) {
     player_light_level = 0;
   }
-  // if shadow level is at max, set checkpoint
-  if (player_shadow_level === player_light_sensors.length / 2) {
-    checkpoint_x = player.x;
-    checkpoint_y = player.y;
-  }
   if (player_light_level >= PLAYER_MAX_LIGHT_LEVEL) {
     makeFuncShowText("You have turned to stone.")();
     func_queue.push(makeFuncCompose(hideText, () => {
-      player.x = checkpoint_x;
-      player.y = checkpoint_y;
+      warp(checkpoint_level_name, checkpoint_x, checkpoint_y);
       player_light_level = 0;
     }));
-  }
-  if (is_night) {
-    player_shadow_level = player_light_sensors.length / 2.0;
-  }
-  if (g_level.is_indoors) {
-    player_shadow_level = player_light_sensors.length / 2.0;
   }
 
   if (!player_can_dash && player_shadow_level > 0 && !player_is_dashing) {
@@ -1663,9 +1658,6 @@ function render() {
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     }
 
-    // render indicator
-
-
     // --- render text and ui ---
     {
       gl.useProgram(shader_programs.tiles);
@@ -1708,6 +1700,7 @@ function render() {
       gl.uniform1i(u_tex, 0);
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
 
+      // render indicator
       for (const sprite of animated_sprites) {
         if (!sprite.visible) continue;
         const s = sprite.getFrame().srcRect;
@@ -1718,7 +1711,17 @@ function render() {
           Math.round(sprite.x), Math.round(sprite.y),
           Math.round(s.w), Math.round(s.h));
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      }
 
+      // render inventory
+      if (player_inventory_index >= 0) {
+        const item = player_inventory[player_inventory_index];
+        const s = item.getFrame().srcRect;
+        gl.uniform4f(u_srcRect, s.x, s.y, s.w, s.h);
+        gl.uniform4f(u_dstRect,
+          SCREEN_WIDTH - 2 * TILE_SIZE, SCREEN_HEIGHT - 2 * TILE_SIZE,
+          s.w, s.h);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
 
     }
@@ -1895,4 +1898,18 @@ function makeObjectFromFieldInstances(fieldInstances) {
     object[field.__identifier] = field.__value;
   }
   return object;
+}
+
+function warp(level_name, x, y) {
+  // remove player from current level
+  const i = g_level.entity_instances.indexOf(player);
+  if (i >= 0) g_level.entity_instances.splice(i, 1);
+  // set current level
+  g_level_name = level_name;
+  g_level = g_levels[g_level_name];
+  // add player to current level
+  g_level.entity_instances.push(player);
+  // set player coordinates
+  player.x = x;
+  player.y = y;
 }
