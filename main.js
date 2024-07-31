@@ -81,8 +81,9 @@ let player_is_dashing = false;
 let is_debug_vis = false;
 let is_paused = false;
 let is_frozen = false;
-let is_night = false;
+let is_night = true;
 let is_plant_watered = false;
+let is_player_upgraded = false;
 
 function hideText() {
   interact_text_box.visible = false;
@@ -321,6 +322,10 @@ class Entity {
   makeFuncRunCmd(cmd) {
     const tokens = cmd.split(" ");
     switch(tokens[0]) {
+      case "upgrade":
+        return () => {
+          is_player_upgraded = true;
+        };
       case "selfdestruct":
         return () => {
           if (targeted_entity === this) {
@@ -1047,16 +1052,26 @@ async function main() {
     2, 0,
   ];
 
-  entity_data["BucketOfWater"].base_rect = new Rect(.25, .25, .5, .5);
-  entity_data["EmptyBucket"].base_rect = new Rect(.25, .25, .5, .5);
-  entity_data["BeetRoot"].base_rect = new Rect(.25, .25, .5, .5);
-  entity_data["Pickaxe"].base_rect = new Rect(.25, .25, .5, .5);
-  entity_data["IronOre"].base_rect = new Rect(.25, .25, .5, .5);
-  entity_data["Coin"].base_rect = new Rect(.25, .25, .5, .5);
-  entity_data["ShedKey"].base_rect = new Rect(.25, .25, .5, .5);
-  entity_data["Rope"].base_rect = new Rect(.25, .25, .5, .5);
-  entity_data["Mask"].base_rect = new Rect(.25, .25, .5, .5);
-  entity_data["RedStone"].base_rect = new Rect(.25, .25, .5, .5);
+
+  for (const item_name of [
+    "BucketOfWater",
+    "EmptyBucket",
+    "BeetRoot",
+    "Pickaxe",
+    "IronOre",
+    "Coin",
+    "ShedKey",
+    "Rope",
+    "Mask",
+    "RedStone",
+    "Spoon",
+  ]) {
+    entity_data[item_name].base_rect = new Rect(.25, .25, .5, .5);
+    entity_data[item_name].no_shadow = true;
+  }
+
+  entity_data["OpenMine"].no_shadow = true;
+  entity_data["ClosedMine"].no_shadow = true;
 
   entity_data["DebugBlock"].base_rect = new Rect(0, 0, 1, 1);
   entity_data["DebugBlock"].bounding_polygon = [
@@ -1300,9 +1315,13 @@ function update(dt) {
 
   if (try_interact) {
     try_interact = false;
-    if (func_queue.length === 0 && targeted_entity) {
-      const item = player_inventory_index >= 0 ? player_inventory[player_inventory_index] : null;
-      targeted_entity.interact(item);
+    if (func_queue.length === 0) {
+      if (targeted_entity) {
+        const item = player_inventory_index >= 0 ? player_inventory[player_inventory_index] : null;
+        targeted_entity.interact(item);
+      } else if (player_inventory_index >= 0) {
+        dropItem();
+      }
     }
     // queue may have been updated
     if (func_queue.length > 0) {
@@ -1501,10 +1520,7 @@ function update(dt) {
     });
     player_shadow_level = shadow_level;
   }
-  if (is_night) {
-    player_shadow_level = player_light_sensors.length / 2.0;
-  }
-  if (g_level.is_indoors) {
+  if (is_night || g_level.is_indoors || is_player_upgraded) {
     player_shadow_level = player_light_sensors.length / 2.0;
   }
 
@@ -1559,6 +1575,7 @@ function render() {
 
     for (const entity of g_level.entity_instances) {
       if (!entity.isThere()) continue;
+      if (entity.data.no_shadow) continue;
       const base = Object.assign({}, entity.data.lsBox);
       base.x += entity.x;
       base.y += entity.y;
@@ -2004,4 +2021,57 @@ function findEntity(identifier) {
     }
   }
   return undefined;
+}
+
+function dropItem() {
+  const item = player_inventory[player_inventory_index];
+  player_inventory.splice(player_inventory_index, 1);
+  player_inventory_index = -1;
+  item.x = player.x;
+  item.y = player.y;
+  g_level.entity_instances.push(item);
+  const standard_procedure = (self) => {
+    self.queueScript([
+      `Picked up ${self.identifier}#give ${self.identifier}`,
+      "#selfdestruct",
+    ]);
+  };
+  switch (item.identifier) {
+    case "Mask":
+    item.setInteract((self, other) => {
+      if (!other) {
+        standard_procedure(self);
+      } else if (other.identifier === "RedStone") {
+        self.queueScript([
+          "You insert the RedStone into the socket on the Mask's forehead.#take",
+          "Without thinking, you put on the mask.#selfdestruct",
+          "You no longer fear the sun.#upgrade",
+        ]);
+      } else {
+        standard_procedure(self);
+      }
+    });
+    break;
+    case "RedStone":
+    item.setInteract((self, other) => {
+      if (!other) {
+        standard_procedure(self);
+      } else if (other.identifier === "Spoon") {
+        self.queueScript([
+          "You touch the RedStone with a Spoon. The Spoon suddenly turns into a gold Coin.#give Coin",
+          "#take",
+        ]);
+      } else {
+        self.queueScript([
+          `You touch the RedStone with a ${other.identifier}. Nothing happens`,
+        ]);
+      }
+    });
+    break;
+    default:
+    item.setInteract(standard_procedure);
+    break;
+  }
+  func_queue.push(makeFuncShowText(`Dropped ${item.identifier}`));
+  func_queue.push(hideText);
 }

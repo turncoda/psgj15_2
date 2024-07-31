@@ -499,7 +499,7 @@
     "frame": { "x": 16, "y": 3168, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": true,
-    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+    "spriteSourceSize": { "x": 0, "y": 112, "w": 16, "h": 16 },
     "sourceSize": { "w": 128, "h": 128 },
     "duration": 100
    },
@@ -4600,7 +4600,8 @@
    { "name": "Alchemist", "from": 59, "to": 59, "direction": "forward", "color": "#000000ff" },
    { "name": "Woman", "from": 60, "to": 60, "direction": "forward", "color": "#000000ff" },
    { "name": "RedStone", "from": 61, "to": 61, "direction": "forward", "color": "#000000ff" },
-   { "name": "RedStone", "from": 61, "to": 61, "direction": "forward", "color": "#000000ff" }
+   { "name": "RedStone", "from": 61, "to": 61, "direction": "forward", "color": "#000000ff" },
+   { "name": "GraveKey", "from": 62, "to": 62, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "Down", "opacity": 255, "blendMode": "normal" },
