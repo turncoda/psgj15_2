@@ -831,6 +831,16 @@ async function main() {
   animated_sprites.push(inventory_box);
 
 
+  entity_data["Chair"].base_rect = new Rect(0.25, 0.25, .5, .5);
+
+  entity_data["Bed"].base_rect = new Rect(0.5, 0.5, 2, 1);
+  entity_data["Bed"].bounding_polygon = [
+    1, 1,
+    1, 2,
+    3, 2,
+    3, 1,
+  ];
+
   entity_data["Table"].base_rect = new Rect(0.5, 0.5, 2, 1);
   entity_data["Table"].bounding_polygon = [
     1, 1,
@@ -887,6 +897,16 @@ async function main() {
 
   entity_data["Kid"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["Kid"].bounding_polygon = [
+    0, 0,
+    0, 1,
+    1, 2,
+    2, 2,
+    2, 1,
+    1, 0,
+  ];
+
+  entity_data["Woman"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["Woman"].bounding_polygon = [
     0, 0,
     0, 1,
     1, 2,
@@ -1036,6 +1056,7 @@ async function main() {
   entity_data["ShedKey"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["Rope"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["Mask"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["RedStone"].base_rect = new Rect(.25, .25, .5, .5);
 
   entity_data["DebugBlock"].base_rect = new Rect(0, 0, 1, 1);
   entity_data["DebugBlock"].bounding_polygon = [
@@ -1182,7 +1203,7 @@ async function main() {
               if (item && item.identifier === fields.trigger_item) {
                 self.queueScript(fields.script_item);
               } else {
-                if (self._interactCount === 0) {
+                if (self._interactCount % 2 === 0) {
                   self.queueScript(fields.script);
                 } else {
                   if (fields.script2 && fields.script2.length > 0) {

@@ -1,7 +1,5 @@
 - drop item on use
-- inside alchemist's house
-- quest: well
-  - philosopher's stone
+- combine items
 - sound effects
 - render order
 - design doc
