@@ -1082,9 +1082,6 @@ async function main() {
     entity_data[item_name].no_shadow = true;
   }
 
-  player_inventory.push(entity_data["Rope"].makeInstance());
-  player_inventory.push(entity_data["Rope"].makeInstance());
-
   entity_data["OpenMine"].no_shadow = true;
   entity_data["ClosedMine"].no_shadow = true;
 
