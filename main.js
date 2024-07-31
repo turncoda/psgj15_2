@@ -804,11 +804,20 @@ async function main() {
   }
 
   indicator = new AnimatedSprite(entity_data["Indicator"].animations["Static"]["Down"]);
+  indicator.hide();
   animated_sprites.push(indicator);
   const inventory_box = new AnimatedSprite(entity_data["InventoryBox"].animations["Static"]["Down"]);
   inventory_box.setPos(SCREEN_WIDTH - 3 * TILE_SIZE, SCREEN_HEIGHT - 3 * TILE_SIZE);
   animated_sprites.push(inventory_box);
 
+
+  entity_data["Table"].base_rect = new Rect(0.5, 0.5, 2, 1);
+  entity_data["Table"].bounding_polygon = [
+    1, 1,
+    1, 2,
+    3, 2,
+    3, 1,
+  ];
 
   entity_data["Clothesline"].base_rect = new Rect(0.5, 0.5, 3, 0);
   entity_data["Clothesline"].bounding_polygon = [
@@ -838,6 +847,16 @@ async function main() {
 
   entity_data["BeetPlant"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["BeetPlant"].bounding_polygon = [
+    0, 0,
+    0, 1,
+    1, 2,
+    2, 2,
+    2, 1,
+    1, 0,
+  ];
+
+  entity_data["Merchant"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["Merchant"].bounding_polygon = [
     0, 0,
     0, 1,
     1, 2,
@@ -906,6 +925,15 @@ async function main() {
     1.5, 1.5,
     7.5, 1.5,
     6.5, .5,
+  ];
+
+  entity_data["Tent"].base_rect = new Rect(.5, .5, 2, 2);
+  entity_data["Tent"].no_collision = true;
+  entity_data["Tent"].bounding_polygon = [
+    1.5, 1.5,
+    1.5, 3.5,
+    3.5, 3.5,
+    3.5, 1.5,
   ];
 
   entity_data["Clocktower"].base_rect = new Rect(0, 0, 2, 2);
@@ -983,6 +1011,7 @@ async function main() {
   entity_data["Coin"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["ShedKey"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["Rope"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["Mask"].base_rect = new Rect(.25, .25, .5, .5);
 
   entity_data["DebugBlock"].base_rect = new Rect(0, 0, 1, 1);
   entity_data["DebugBlock"].bounding_polygon = [
@@ -1075,6 +1104,7 @@ async function main() {
     const triggers = [];
     const tiles = [];
     const invisible_walls = [];
+    level.layerInstances.reverse();
     for (const layer of level.layerInstances) {
       for (const tile of layer.gridTiles) {
         tiles.push(tile);
@@ -1151,6 +1181,10 @@ async function main() {
   }
 
   g_level = g_levels[g_level_name];
+
+  checkpoint_x = player.x;
+  checkpoint_y = player.y;
+  checkpoint_level_name = g_level_name;
 
   // --- SET UP VERTEX ARRAYS ---
 
@@ -1358,6 +1392,7 @@ function update(dt) {
     player.x += dx;
     for (const entity of g_level.entity_instances) {
       if (!entity.isThere()) continue;
+      if (entity.data.no_collision) continue;
       if (entity.identifier === "Player") continue;
       if (player.rect.test(entity.rect)) {
         player.x = oldPlayerX + rectCopy.xDistTo(entity.rect, 1e-12);
@@ -1372,6 +1407,7 @@ function update(dt) {
     player.y += dy;
     for (const entity of g_level.entity_instances) {
       if (!entity.isThere()) continue;
+      if (entity.data.no_collision) continue;
       if (entity.identifier === "Player") continue;
       if (player.rect.test(entity.rect)) {
         player.y = oldPlayerY + rectCopy.yDistTo(entity.rect, 1e-12);
@@ -1669,33 +1705,8 @@ function render() {
       let u_dstRect = gl.getUniformLocation(shader_programs.tiles, "dstRect");
       let u_cameraPos = gl.getUniformLocation(shader_programs.tiles, "cameraPos");
 
-      gl.uniform1i(u_tex, 2);
-      gl.uniform2f(u_texSize, charset.width, charset.height);
       gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
       gl.uniform2f(u_cameraPos, 0, 0);
-
-      for (const textBox of text_boxes) {
-        if (!textBox.visible) continue;
-        {
-          const r = textBox.bgRect();
-          gl.uniform4f(u_srcRect,
-            0, 0,
-            CHARSET_TILE_WIDTH, CHARSET_TILE_HEIGHT);
-          gl.uniform4f(u_dstRect,
-            Math.round(r.x), Math.round(r.y),
-            Math.round(r.w), Math.round(r.h));
-          gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-        }
-        for (const [s, d] of textBox.charRects()) {
-          gl.uniform4f(u_srcRect,
-            Math.round(s.x), Math.round(s.y),
-            Math.round(s.w), Math.round(s.h));
-          gl.uniform4f(u_dstRect,
-            Math.round(d.x), Math.round(d.y),
-            Math.round(d.w), Math.round(d.h));
-          gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-        }
-      }
 
       gl.uniform1i(u_tex, 0);
       gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
@@ -1723,6 +1734,33 @@ function render() {
           s.w, s.h);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
+
+      // draw text
+      gl.uniform1i(u_tex, 2);
+      gl.uniform2f(u_texSize, charset.width, charset.height);
+      for (const textBox of text_boxes) {
+        if (!textBox.visible) continue;
+        {
+          const r = textBox.bgRect();
+          gl.uniform4f(u_srcRect,
+            0, 0,
+            CHARSET_TILE_WIDTH, CHARSET_TILE_HEIGHT);
+          gl.uniform4f(u_dstRect,
+            Math.round(r.x), Math.round(r.y),
+            Math.round(r.w), Math.round(r.h));
+          gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+        }
+        for (const [s, d] of textBox.charRects()) {
+          gl.uniform4f(u_srcRect,
+            Math.round(s.x), Math.round(s.y),
+            Math.round(s.w), Math.round(s.h));
+          gl.uniform4f(u_dstRect,
+            Math.round(d.x), Math.round(d.y),
+            Math.round(d.w), Math.round(d.h));
+          gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+        }
+      }
+
 
     }
 

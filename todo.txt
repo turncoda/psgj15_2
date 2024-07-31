@@ -1,5 +1,4 @@
-- quest: merchant
-  - stone mask
+- drop item on use
 - quest: farmer
   - water his plants
 - quest: well
