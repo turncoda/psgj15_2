@@ -82,6 +82,7 @@ let is_debug_vis = false;
 let is_paused = false;
 let is_frozen = false;
 let is_night = false;
+let is_plant_watered = false;
 
 function hideText() {
   interact_text_box.visible = false;
@@ -297,6 +298,25 @@ class Entity {
   }
   interact(item) {
     this._interact(this, item);
+
+    // this is a great big hack but i'm running out of time
+    if (this.identifier === "BeetPlant" && item && item.identifier === "BucketOfWater") {
+      this.setInteract((self) => {
+        self.queueScript([
+          "It looks healthy.",
+        ]);
+      });
+      const farmer = findEntity("Farmer");
+      if (farmer) {
+        farmer.setInteract((self) => {
+          self.queueScript([
+            "Whoa, my plant looks way healthier!",
+            "Whatever you did, you have my gratitude.",
+            "Here, take this key to my shed. Help yourself to whatever's in there.#give ShedKey",
+          ]);
+        });
+      }
+    }
   }
   makeFuncRunCmd(cmd) {
     const tokens = cmd.split(" ");
@@ -1007,7 +1027,11 @@ async function main() {
     2, 0,
   ];
 
+  entity_data["BucketOfWater"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["EmptyBucket"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["BeetRoot"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["Pickaxe"].base_rect = new Rect(.25, .25, .5, .5);
+  entity_data["IronOre"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["Coin"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["ShedKey"].base_rect = new Rect(.25, .25, .5, .5);
   entity_data["Rope"].base_rect = new Rect(.25, .25, .5, .5);
@@ -1950,4 +1974,13 @@ function warp(level_name, x, y) {
   // set player coordinates
   player.x = x;
   player.y = y;
+}
+
+function findEntity(identifier) {
+  for (const entity of g_level.entity_instances) {
+    if (entity.identifier === identifier) {
+      return entity;
+    }
+  }
+  return undefined;
 }

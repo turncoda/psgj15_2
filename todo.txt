@@ -1,6 +1,5 @@
 - drop item on use
-- quest: farmer
-  - water his plants
+- inside alchemist's house
 - quest: well
   - philosopher's stone
 - sound effects
