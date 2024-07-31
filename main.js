@@ -123,7 +123,7 @@ class Level {
 }
 
 class TextBox {
-  constructor(text, x, y, max_px_width, horizontal_alignment, vertical_alignment) {
+  constructor(text, x, y, max_px_width, padding, horizontal_alignment, vertical_alignment) {
     this.visible = true;
     this._text = text;
     this.x = Math.round(x);
@@ -131,6 +131,7 @@ class TextBox {
     this.horizontal_alignment = horizontal_alignment;
     this.vertical_alignment = vertical_alignment;
     this.max_px_width = max_px_width ?? SCREEN_WIDTH;
+    this.padding = padding ?? 2;
   }
 
   get text() {
@@ -150,7 +151,7 @@ class TextBox {
     const space_width = charWidth(" ");
     for (const word of this.text.split(" ")) {
       const width = textWidth(word);
-      if (line_width + space_width + width > this.max_px_width) {
+      if (line_width + space_width + width > this.max_px_width - 2 * this.padding) {
         if (line.length > 0) {
           this._cached_lines.push(line);
         }
@@ -166,6 +167,11 @@ class TextBox {
 
   width() {
     return this.max_px_width;
+  }
+
+  height() {
+    const lines = this.splitTextIntoLines();
+    return charLineHeight() * lines.length + 2 * this.padding;
   }
 
   leftX() {
@@ -188,7 +194,7 @@ class TextBox {
 
   topY() {
     const lines = this.splitTextIntoLines();
-    const height = charLineHeight() * lines.length;
+    const height = this.height();
     let y;
     switch (this.vertical_alignment) {
       default:
@@ -207,7 +213,7 @@ class TextBox {
 
   bgRect() {
     const lines = this.splitTextIntoLines();
-    const height = charLineHeight() * lines.length;
+    const height = this.height();
     const width = this.width();
     const x = this.leftX();
     const y = this.topY();
@@ -218,8 +224,8 @@ class TextBox {
   charRects() {
     const lines = this.splitTextIntoLines();
     const result = [];
-    let x = this.leftX();
-    let y = this.topY();
+    let x = this.leftX() + this.padding;
+    let y = this.topY() + this.padding;
     for (const line of lines) {
       for (const c of line) {
         const s = Object.assign({}, charSrcRect(c));
@@ -229,7 +235,7 @@ class TextBox {
         x += 1 + s.w;
         result.push([s, d]);
       }
-      x = this.leftX();
+      x = this.leftX() + this.padding;
       y += charLineHeight();
     }
     return result;
@@ -830,11 +836,11 @@ async function main() {
 
   // --- ADD TEXT BOXES ---
   pause_text_box = new TextBox("- paused -", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-    undefined, HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
+    undefined, undefined, HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
   pause_text_box.visible = false;
   text_boxes.push(pause_text_box);
   interact_text_box = new TextBox("(placeholder)", 0, SCREEN_HEIGHT,
-    undefined, HorizontalAlignment.LEFT, VerticalAlignment.BOTTOM);
+    undefined, undefined, HorizontalAlignment.LEFT, VerticalAlignment.BOTTOM);
   interact_text_box.visible = false;
   text_boxes.push(interact_text_box);
 
