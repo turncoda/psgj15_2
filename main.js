@@ -4,9 +4,6 @@ const ONE_OVER_SQRT_OF_TWO = 1.0 / Math.sqrt(2.0);
 const TARGET_FRAME_RATE = 60.0; // frames per second
 const TARGET_FRAME_DURATION = 1000.0 / TARGET_FRAME_RATE; // milliseconds
 
-const CHARSET_TILE_SIZE = 16;
-const CHARSET_TILE_WIDTH = 10;
-const CHARSET_TILE_HEIGHT = 16;
 const TILE_SIZE = 16;
 const SCREEN_WIDTH = 320;
 const SCREEN_HEIGHT = 180;
@@ -34,6 +31,9 @@ let charset;
 let fb;
 let shader_programs = {};
 let spritesheet_json;
+let font_json;
+let font_img;
+const font_charmap = {};
 const entity_data = {};
 const g_levels = [];
 const text_boxes = [];
@@ -82,7 +82,7 @@ let player_was_dashing = false;
 let is_debug_vis = false;
 let is_paused = false;
 let is_frozen = false;
-let is_night = true;
+let is_night = false;
 let is_plant_watered = false;
 let is_player_upgraded = false;
 
@@ -123,15 +123,14 @@ class Level {
 }
 
 class TextBox {
-  constructor(text, x, y, max_chars_per_line, horizontal_alignment, vertical_alignment) {
+  constructor(text, x, y, max_px_width, horizontal_alignment, vertical_alignment) {
     this.visible = true;
     this._text = text;
     this.x = Math.round(x);
     this.y = Math.round(y);
     this.horizontal_alignment = horizontal_alignment;
     this.vertical_alignment = vertical_alignment;
-    this.max_chars_per_line = max_chars_per_line ??
-      SCREEN_WIDTH / CHARSET_TILE_WIDTH;
+    this.max_px_width = max_px_width ?? SCREEN_WIDTH;
   }
 
   get text() {
@@ -147,19 +146,26 @@ class TextBox {
     if (this._cached_lines) return this._cached_lines;
     this._cached_lines = [];
     let line = "";
+    let line_width = 0;
+    const space_width = charWidth(" ");
     for (const word of this.text.split(" ")) {
-      if (line.length + 1 + word.length > this.max_chars_per_line) {
-        if (line.length > 0) this._cached_lines.push(line);
+      const width = textWidth(word);
+      if (line_width + space_width + width > this.max_px_width) {
+        if (line.length > 0) {
+          this._cached_lines.push(line);
+        }
         line = "";
+        line_width = 0;
       }
       line = line.length === 0 ? word : [line, word].join(" ");
+      line_width += 1 + space_width + 1 + width;
     }
     this._cached_lines.push(line);
     return this._cached_lines;
   }
 
   width() {
-    return this.max_chars_per_line * CHARSET_TILE_WIDTH;
+    return this.max_px_width;
   }
 
   leftX() {
@@ -182,7 +188,7 @@ class TextBox {
 
   topY() {
     const lines = this.splitTextIntoLines();
-    const height = CHARSET_TILE_HEIGHT * lines.length;
+    const height = charLineHeight() * lines.length;
     let y;
     switch (this.vertical_alignment) {
       default:
@@ -201,7 +207,7 @@ class TextBox {
 
   bgRect() {
     const lines = this.splitTextIntoLines();
-    const height = CHARSET_TILE_HEIGHT * lines.length;
+    const height = charLineHeight() * lines.length;
     const width = this.width();
     const x = this.leftX();
     const y = this.topY();
@@ -212,28 +218,19 @@ class TextBox {
   charRects() {
     const lines = this.splitTextIntoLines();
     const result = [];
-    for (let y = 0; y < lines.length; y++) {
-      const line = lines[y];
-      for (let x = 0; x < line.length; x++) {
-        const c = line.charCodeAt(x);
-        const sx = c % 16 * CHARSET_TILE_WIDTH;
-        const sy = Math.trunc(c / 16) * CHARSET_TILE_HEIGHT;
-        const s = new Rect(
-          sx,
-          sy,
-          CHARSET_TILE_WIDTH,
-          CHARSET_TILE_HEIGHT,
-        );
-        const width = this.width();
-        const ox = this.leftX();
-        const oy = this.topY();
-        const d = new Rect(
-          ox + x * CHARSET_TILE_WIDTH,
-          oy + y * CHARSET_TILE_HEIGHT,
-          CHARSET_TILE_WIDTH,
-          CHARSET_TILE_HEIGHT);
+    let x = this.leftX();
+    let y = this.topY();
+    for (const line of lines) {
+      for (const c of line) {
+        const s = Object.assign({}, charSrcRect(c));
+        const d = Object.assign({}, s);
+        d.x = x;
+        d.y = y;
+        x += 1 + s.w;
         result.push([s, d]);
       }
+      x = this.leftX();
+      y += charLineHeight();
     }
     return result;
   }
@@ -698,6 +695,19 @@ async function main() {
     .then(response => response.json())
   );
 
+  promises.push(
+    fetch("assets/funa.json")
+    .then(response => response.json())
+  );
+
+  font_img = new Image();
+  font_img.src = "assets/funa.png";
+  promises.push(new Promise(resolve => {
+    font_img.onload = function() {
+      resolve();
+    };
+  }));
+
   charset = new Image();
   charset.src = "assets/charset.png";
   promises.push(new Promise(resolve => {
@@ -710,6 +720,13 @@ async function main() {
 
   ldtk_map = assets[1];
   spritesheet_json = assets[2];
+  font_json = assets[3];
+  font_charmap.max_char_height = 0;
+  for (const slice of font_json.meta.slices) {
+    const b = slice.keys[0].bounds;
+    font_charmap[slice.name] = b;
+    font_charmap.max_char_height = Math.max(font_charmap.max_char_height, b.h);
+  }
 
   // --- INIT WEBGL ---
   let canvas = document.getElementById("canvas");
@@ -746,7 +763,7 @@ async function main() {
       gl.RGBA,
       gl.RGBA,
       gl.UNSIGNED_BYTE,
-      charset);
+      font_img);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   }
@@ -1365,7 +1382,6 @@ function update(dt) {
       sfx_synth.stop();
       sfx_synth.volume(.5);
       sfx_synth.play();
-      console.log("play");
     } else {
       sfx_synth.fade(.5, 0, 200);
     }
@@ -1833,21 +1849,23 @@ function render() {
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
 
-      // draw text
-      gl.uniform1i(u_tex, 2);
-      gl.uniform2f(u_texSize, charset.width, charset.height);
       for (const textBox of text_boxes) {
         if (!textBox.visible) continue;
         {
           const r = textBox.bgRect();
-          gl.uniform4f(u_srcRect,
-            0, 0,
-            CHARSET_TILE_WIDTH, CHARSET_TILE_HEIGHT);
+          gl.uniform4f(u_srcRect, 16, 736, TILE_SIZE, TILE_SIZE);
           gl.uniform4f(u_dstRect,
             Math.round(r.x), Math.round(r.y),
             Math.round(r.w), Math.round(r.h));
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         }
+      }
+
+      // draw text
+      gl.uniform1i(u_tex, 2);
+      gl.uniform2f(u_texSize, font_img.width, font_img.height);
+      for (const textBox of text_boxes) {
+        if (!textBox.visible) continue;
         for (const [s, d] of textBox.charRects()) {
           gl.uniform4f(u_srcRect,
             Math.round(s.x), Math.round(s.y),
@@ -2139,4 +2157,36 @@ function standardizeItem(item) {
     item.setInteract(standard_procedure);
     break;
   }
+}
+
+function charLineHeight() {
+  return font_charmap.max_char_height;
+}
+function charSrcRect(c) {
+  const b = font_charmap[c];
+  if (b) {
+    return b;
+  } else {
+    return font_charmap[" "];
+  }
+}
+
+function charWidth(c) {
+  const b = font_charmap[c];
+  console.assert(b, `${c} not in charmap`);
+  if (b) {
+    return b.w;
+  } else {
+    return font_charmap[" "].w;
+  }
+}
+
+function textWidth(text) {
+  let sum = 0;
+  for (const c of text) {
+    const w = charWidth(c);
+    sum += w;
+  }
+  // account for 1px gap between chars
+  return sum + text.length - 1;
 }
