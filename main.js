@@ -60,10 +60,14 @@ const PLAYER_VELOCITY_MAX_INCREMENT = .1;
 const PLAYER_VELOCITY_MAX_DECREMENT = .05;
 let player_light_sensors;
 let player_shadow_level;
+let player_light_level;
+const PLAYER_MAX_LIGHT_LEVEL = 3000; // milliseconds
 let player_dash_counter = 0;
 let player_can_dash = false;
 const PLAYER_DASH_MAX_DURATION = 500;
 let targeted_entity;
+let checkpoint_x;
+let checkpoint_y;
 const func_queue = [];
 let is_pressed_up = false;
 let is_pressed_left = false;
@@ -755,6 +759,10 @@ async function main() {
   let fs_tiles = document.getElementById("fs_tiles").innerHTML.trim();
   shader_programs.tiles = createProgram(gl, vs_tiles, fs_tiles);
 
+  let vs_tiles_tint = document.getElementById("vs_tiles_tint").innerHTML.trim();
+  let fs_tiles_tint = document.getElementById("fs_tiles_tint").innerHTML.trim();
+  shader_programs.tiles_tint = createProgram(gl, vs_tiles_tint, fs_tiles_tint);
+
   let vs_tiles_mask = document.getElementById("vs_tiles_mask").innerHTML.trim();
   let fs_tiles_mask = document.getElementById("fs_tiles_mask").innerHTML.trim();
   shader_programs.tiles_mask = createProgram(gl, vs_tiles_mask, fs_tiles_mask);
@@ -1008,6 +1016,7 @@ async function main() {
     24,  8, 
   ];
   player_shadow_level = 0;
+  player_light_level = 0;
 
   // --- CONSTRUCT GEOMETRY ---
 
@@ -1417,6 +1426,25 @@ function update(dt) {
     });
     player_shadow_level = shadow_level;
   }
+  if (player_shadow_level === 0 && !player_is_dashing) {
+    player_light_level += dt;
+  }
+  if (player_shadow_level > 0) {
+    player_light_level = 0;
+  }
+  // if shadow level is at max, set checkpoint
+  if (player_shadow_level === player_light_sensors.length / 2) {
+    checkpoint_x = player.x;
+    checkpoint_y = player.y;
+  }
+  if (player_light_level >= PLAYER_MAX_LIGHT_LEVEL) {
+    makeFuncShowText("You have turned to stone.")();
+    func_queue.push(makeFuncCompose(hideText, () => {
+      player.x = checkpoint_x;
+      player.y = checkpoint_y;
+      player_light_level = 0;
+    }));
+  }
   if (is_night) {
     player_shadow_level = player_light_sensors.length / 2.0;
   }
@@ -1577,6 +1605,39 @@ function render() {
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
     }
+    // --- render player tint ---
+    {
+      gl.useProgram(shader_programs.tiles_tint);
+
+      let u_tex = gl.getUniformLocation(shader_programs.tiles_tint, "tex");
+      let u_texSize = gl.getUniformLocation(shader_programs.tiles_tint, "texSize");
+      let u_screenSize = gl.getUniformLocation(shader_programs.tiles_tint, "screenSize");
+      let u_srcRect = gl.getUniformLocation(shader_programs.tiles_tint, "srcRect");
+      let u_dstRect = gl.getUniformLocation(shader_programs.tiles_tint, "dstRect");
+      let u_cameraPos = gl.getUniformLocation(shader_programs.tiles_tint, "cameraPos");
+      let u_tintAmount = gl.getUniformLocation(shader_programs.tiles_tint, "tintAmount");
+      let u_tintColor = gl.getUniformLocation(shader_programs.tiles_tint, "tintColor");
+
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.ONE, gl.ONE);
+
+      gl.uniform1i(u_tex, 0);
+      gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
+      gl.uniform2f(u_screenSize, SCREEN_WIDTH, SCREEN_HEIGHT);
+      gl.uniform3f(u_tintColor, 0, 1, 1);
+      gl.uniform1f(u_tintAmount, player_light_level / PLAYER_MAX_LIGHT_LEVEL);
+      const [cx, cy] = getCameraPosition();
+      gl.uniform2f(u_cameraPos, (cx), (cy));
+
+      const rect = player.getFrame().srcRect;
+      gl.uniform4f(u_srcRect, rect.x, rect.y, rect.w, rect.h);
+      gl.uniform4f(u_dstRect, Math.round(player.x), Math.round(player.y), rect.w, rect.h);
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+
+      // return to default blend function
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    }
 
     // --- render shadow map texture to screen ---
     {
@@ -1733,6 +1794,18 @@ function render() {
       const result = meter.join("");
       if (shadow_level_span.innerHTML !== result) {
         shadow_level_span.innerHTML = result;
+      }
+    }
+    {
+      const span = document.getElementById("lightLevel");
+      const meter = [];
+      for (let i = 0; i < PLAYER_MAX_LIGHT_LEVEL; i += 200) {
+        if (i < player_light_level) meter.push("#");
+        else meter.push("-");
+      }
+      const result = meter.join("");
+      if (span.innerHTML !== result) {
+        span.innerHTML = result;
       }
     }
     {

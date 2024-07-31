@@ -5,6 +5,7 @@
     <canvas id="canvas" width="640px" height="360px"></canvas>
     <h3>Debug Info</h3>
     Shadow Level: |<span id="shadowLevel"></span>|<br>
+    Light Level: |<span id="lightLevel"></span>|<br>
     Player Inventory: <span id="playerInventory"></span><br>
     Player Inventory Index: <span id="playerInventoryIndex"></span><br>
     Player Speed: <span id="playerSpeed"></span><br>
@@ -96,6 +97,56 @@
       void main() {
         fragColor = texture(tex, texCoord);
         fragColor.rgb = vec3(fragColor.a);
+      }
+    </script>
+    <script type="vertex" id="vs_tiles_tint">
+      #version 300 es
+
+      uniform vec2 texSize;
+      uniform vec2 screenSize;
+      uniform vec4 srcRect;
+      uniform vec4 dstRect;
+      uniform vec2 cameraPos;
+      
+      layout (location=0) in vec2 position;
+
+      out vec2 texCoord;
+      
+      void main() {
+        vec2 uv = position;
+        float xCoord = (srcRect.x + uv.x * srcRect.z) / texSize.x;
+        float yCoord = (srcRect.y + uv.y * srcRect.w) / texSize.y;
+        texCoord = vec2(xCoord, yCoord);
+
+        float xPos = (dstRect.x + position.x * dstRect.z);
+        float yPos = (dstRect.y + position.y * dstRect.w);
+
+        // translate to camera
+        xPos = xPos - cameraPos.x;
+        yPos = yPos - cameraPos.y;
+
+        xPos = xPos / screenSize.x * 2.0 - 1.0;
+        yPos = -1.0 * (yPos / screenSize.y  * 2.0 - 1.0);
+
+        gl_Position = vec4(xPos, yPos, 0.0, 1.0);
+      }
+    </script>
+    <script type="fragment" id="fs_tiles_tint">
+      #version 300 es
+      precision highp float;
+
+      uniform sampler2D tex;
+      uniform float tintAmount;
+      uniform vec3 tintColor;
+
+      in vec2 texCoord;
+
+      out vec4 fragColor;
+
+      void main() {
+        fragColor = texture(tex, texCoord);
+        fragColor.rgb = mix(vec3(0.0), tintColor, tintAmount);
+        fragColor = fragColor * vec4(fragColor.a);
       }
     </script>
     <script type="vertex" id="vs_tiles_mask">

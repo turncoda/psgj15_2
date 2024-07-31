@@ -1,4 +1,3 @@
-- die after staying in sunlight too long
 - inventory ui
 - quest: merchant
   - stone mask
