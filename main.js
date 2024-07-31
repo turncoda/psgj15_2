@@ -37,6 +37,8 @@ let spritesheet_json;
 const entity_data = {};
 const g_levels = [];
 const text_boxes = [];
+const animated_sprites = [];
+let indicator;
 let g_level_name;
 let g_level;
 let pause_text_box;
@@ -74,7 +76,7 @@ let player_is_dashing = false;
 let is_debug_vis = false;
 let is_paused = false;
 let is_frozen = false;
-let is_night = true;
+let is_night = false;
 
 function hideText() {
   interact_text_box.visible = false;
@@ -296,7 +298,10 @@ class Entity {
     switch(tokens[0]) {
       case "selfdestruct":
         return () => {
-          if (targeted_entity === this) targeted_entity = undefined;
+          if (targeted_entity === this) {
+            targeted_entity = undefined;
+            indicator.hide();
+          }
           const i = g_level.entity_instances.indexOf(this);
           if (i >= 0) {
             g_level.entity_instances.splice(i, 1);
@@ -413,6 +418,33 @@ class Frame {
     frame.ssOffsetX = ssJSON.spriteSourceSize.x - json.spriteSourceSize.x;
     frame.ssOffsetY = ssJSON.spriteSourceSize.y - json.spriteSourceSize.y;
     return frame;
+  }
+}
+
+class AnimatedSprite {
+  constructor(animation) {
+    this.animation = animation;
+    this.counter = 0;
+    this.visible = true;
+    this.x = 0;
+    this.y = 0;
+  }
+  advance(dt) {
+    this.counter += dt;
+  }
+  getFrame() {
+    return this.animation.getFrame(this.counter);
+  }
+  hide() {
+    this.visible = false;
+  }
+  show() {
+    this.visible = true;
+    this.counter = 0;
+  }
+  setPos(x, y) {
+    this.x = x;
+    this.y = y;
   }
 }
 
@@ -771,6 +803,10 @@ async function main() {
       entity_data[id].addAnimation(animName, facing, new Animation(frames));
     }
   }
+
+  indicator = new AnimatedSprite(entity_data["Indicator"].animations["Static"]["Down"]);
+  animated_sprites.push(indicator);
+
 
   entity_data["Clothesline"].base_rect = new Rect(0.5, 0.5, 3, 0);
   entity_data["Clothesline"].bounding_polygon = [
@@ -1198,6 +1234,11 @@ function update(dt) {
     return;
   }
 
+  // advance animated sprite timers
+  for (const sprite of animated_sprites) {
+    sprite.advance(dt);
+  }
+
   // advance entity timers
   for (const entity of g_level.entity_instances) {
     entity.advance(dt);
@@ -1212,6 +1253,7 @@ function update(dt) {
       // TODO factor out magic number
       if (dist > 32) {
         targeted_entity = undefined;
+        indicator.hide();
       }
     }
     if (!targeted_entity) {
@@ -1224,10 +1266,19 @@ function update(dt) {
         const dist = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
         if (dist < 32) {
           targeted_entity = entity;
+          indicator.show();
           break;
         }
       }
     }
+  }
+
+  // update indicator position
+  if (targeted_entity) {
+    const [cx, cy] = getCameraPosition();
+    indicator.setPos(
+      targeted_entity.x + targeted_entity.rect.w - cx,
+      targeted_entity.y - cy - TILE_SIZE);
   }
 
   player_dash_counter = Math.max(0, player_dash_counter - dt);
@@ -1551,7 +1602,10 @@ function render() {
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     }
 
-    // --- render text ---
+    // render indicator
+
+
+    // --- render text and ui ---
     {
       gl.useProgram(shader_programs.tiles);
 
@@ -1588,6 +1642,22 @@ function render() {
             Math.round(d.w), Math.round(d.h));
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         }
+      }
+
+      gl.uniform1i(u_tex, 0);
+      gl.uniform2f(u_texSize, img_spritesheet.width, img_spritesheet.height);
+
+      for (const sprite of animated_sprites) {
+        if (!sprite.visible) continue;
+        const s = sprite.getFrame().srcRect;
+        gl.uniform4f(u_srcRect,
+          Math.round(s.x), Math.round(s.y),
+          Math.round(s.w), Math.round(s.h));
+        gl.uniform4f(u_dstRect,
+          Math.round(sprite.x), Math.round(sprite.y),
+          Math.round(s.w), Math.round(s.h));
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+
       }
 
     }
