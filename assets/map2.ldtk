@@ -10675,7 +10675,7 @@
 							"fieldInstances": [
 								{ "__identifier": "script", "__type": "Array<String>", "__value": [
 									"Rumor has it that alchemists use something called a Philosopher's Stone to transform common metals into gold.",
-									"Quite the fairy tale if I ever heard one. Get a real job!"
+									"Honestly, it just sounds like a scam. Get a real job!"
 								], "__tile": null, "defUid": 180, "realEditorValues": [ {
 									"id": "V_String",
 									"params": [
@@ -10683,9 +10683,28 @@
 									]
 								}, {
 									"id": "V_String",
-									"params": ["Quite the fairy tale if I ever heard one. Get a real job!"]
+									"params": ["Honestly, it just sounds like a scam. Get a real job!"]
 								} ] },
-								{ "__identifier": "script2", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 181, "realEditorValues": [] },
+								{ "__identifier": "script2", "__type": "Array<String>", "__value": [
+									"Legends tell of a mask that turns the wearer into a vampire.",
+									"When this mask is combined with a certain red stone, the wearer becomes an even more powerful vampire.",
+									"These vampires are so powerful they apparently do not even fear the sun.",
+									"Sounds like something straight out of a children's fairy tale if you ask me!"
+								], "__tile": null, "defUid": 181, "realEditorValues": [ {
+									"id": "V_String",
+									"params": ["Legends tell of a mask that turns the wearer into a vampire."]
+								}, {
+									"id": "V_String",
+									"params": [
+										"When this mask is combined with a certain red stone, the wearer becomes an even more powerful vampire."
+									]
+								}, {
+									"id": "V_String",
+									"params": ["These vampires are so powerful they apparently do not even fear the sun."]
+								}, {
+									"id": "V_String",
+									"params": ["Sounds like something straight out of a children's fairy tale if you ask me!"]
+								} ] },
 								{ "__identifier": "script_item", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 182, "realEditorValues": [] },
 								{ "__identifier": "trigger_item", "__type": "String", "__value": null, "__tile": null, "defUid": 183, "realEditorValues": [] },
 								{ "__identifier": "day_only", "__type": "Bool", "__value": true, "__tile": null, "defUid": 184, "realEditorValues": [] }
