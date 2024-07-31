@@ -6538,7 +6538,7 @@
 								{ "__identifier": "script_item", "__type": "Array<String>", "__value": [
 									"You tie one end of the rope securely to the roof and drop the other end into the well.",
 									"You take a deep breath and climb down.",
-									"#warp InsideWell"
+									"#warp InsideWell 640 130"
 								], "__tile": null, "defUid": 186, "realEditorValues": [ {
 									"id": "V_String",
 									"params": [
@@ -6549,7 +6549,7 @@
 									"params": ["You take a deep breath and climb down."]
 								}, {
 									"id": "V_String",
-									"params": ["#warp InsideWell"]
+									"params": ["#warp InsideWell 640 130"]
 								} ] },
 								{ "__identifier": "trigger_item", "__type": "String", "__value": "Rope", "__tile": null, "defUid": 187, "realEditorValues": [{
 									"id": "V_String",
@@ -7052,6 +7052,33 @@
 							"px": [480,192],
 							"fieldInstances": [],
 							"__worldX": 354,
+							"__worldY": 257
+						},
+						{
+							"__identifier": "Rope",
+							"__grid": [19,12],
+							"__pivot": [0,0],
+							"__tags": ["static"],
+							"__tile": { "tilesetUid": 1, "x": 16, "y": 2016, "w": 16, "h": 16 },
+							"__smartColor": "#BE4A2F",
+							"iid": "d90fa250-4ce0-11ef-af61-7131903de89d",
+							"width": 16,
+							"height": 16,
+							"defUid": 101,
+							"px": [304,192],
+							"fieldInstances": [
+								{ "__identifier": "script", "__type": "Array<String>", "__value": [ "abc#give Rope", "#selfdestruct" ], "__tile": null, "defUid": 102, "realEditorValues": [ {
+									"id": "V_String",
+									"params": ["abc#give Rope"]
+								}, {
+									"id": "V_String",
+									"params": ["#selfdestruct"]
+								} ] },
+								{ "__identifier": "script2", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 103, "realEditorValues": [] },
+								{ "__identifier": "script_item", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 104, "realEditorValues": [] },
+								{ "__identifier": "trigger_item", "__type": "String", "__value": null, "__tile": null, "defUid": 105, "realEditorValues": [] }
+							],
+							"__worldX": 178,
 							"__worldY": 257
 						}
 					]
@@ -13868,10 +13895,13 @@
 							"defUid": 87,
 							"px": [144,80],
 							"fieldInstances": [
-								{ "__identifier": "script", "__type": "Array<String>", "__value": ["#warp Level_0 147 259"], "__tile": null, "defUid": 88, "realEditorValues": [{
+								{ "__identifier": "script", "__type": "Array<String>", "__value": [ "You climb up the rope.", "#warp Level_0 147 259" ], "__tile": null, "defUid": 88, "realEditorValues": [ {
+									"id": "V_String",
+									"params": ["You climb up the rope."]
+								}, {
 									"id": "V_String",
 									"params": ["#warp Level_0 147 259"]
-								}] },
+								} ] },
 								{ "__identifier": "script2", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 89, "realEditorValues": [] },
 								{ "__identifier": "script_item", "__type": "Array<String>", "__value": [], "__tile": null, "defUid": 90, "realEditorValues": [] },
 								{ "__identifier": "trigger_item", "__type": "String", "__value": null, "__tile": null, "defUid": 91, "realEditorValues": [] }

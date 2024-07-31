@@ -1,5 +1,6 @@
 - drop item on use
 - combine items
+- make farmer not give shed key twice
 - sound effects
 - render order
 - design doc
